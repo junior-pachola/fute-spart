@@ -7,6 +7,17 @@ service cloud.firestore {
     match /spartax/site {
       allow read: if true;
       allow write: if true;
+
+      // Fotos e notícias (cada item é um doc — sem limite de 1 MB,
+      // funciona no plano gratuito sem Storage pago).
+      match /galeria/{id} {
+        allow read: if true;
+        allow write: if true;
+      }
+      match /noticias/{id} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
   }
 }

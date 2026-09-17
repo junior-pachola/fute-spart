@@ -57,18 +57,21 @@ export function filesToResizedDataUrls(files: FileList | File[], maxDim = 1024, 
 
 /**
  * Caminho principal de imagem do app:
- * - com Firebase configurado → sobe ao Storage e devolve a URL pública;
- * - sem Firebase → dataURL local (offline).
+ * - com Storage liberado → sobe e devolve a URL pública;
+ * - sem Storage (plano gratuito) ou falha → dataURL local comprimido,
+ *   que é salvo no Firestore junto ao conteúdo (sem custo).
  */
 export async function processImageFile(file: File, folder = "geral"): Promise<string> {
   if (isFirebaseConfigured && storage) {
-    const img = await loadImage(file);
-    const blob = await canvasToBlob(drawResized(img, 1280), 0.85);
-    const path = `spartax/${folder}/${uid()}.jpg`;
-    const snap = await uploadBytes(ref(storage, path), blob, { contentType: "image/jpeg" });
-    return getDownloadURL(snap.ref);
+    try {
+      const img = await loadImage(file);
+      const blob = await canvasToBlob(drawResized(img, 1280), 0.85);
+      const path = `spartax/${folder}/${uid()}.jpg`;
+      const snap = await uploadBytes(ref(storage, path), blob, { contentType: "image/jpeg" });
+      return getDownloadURL(snap.ref);
+    } catch { /* cai no dataURL abaixo */ }
   }
-  return fileToResizedDataUrl(file);
+  return fileToResizedDataUrl(file, 800, 0.75);
 }
 
 export function processImageFiles(files: FileList | File[], folder = "geral"): Promise<string[]> {

@@ -1,22 +1,26 @@
 # SPARTAX + Firebase
 
-Banco de dados: **Cloud Firestore** · Arquivos: **Cloud Storage**.
+Banco de dados: **Cloud Firestore** (plano gratuito Spark — sem cartão).
+Fotos: salvas **dentro do Firestore** (galeria e notícias em subcoleções,
+cada foto num documento — sem limite de 1 MB e sem precisar do Storage pago).
 
 ## 1. Criar o projeto
 
 1. Acesse [console.firebase.google.com](https://console.firebase.google.com) → **Adicionar projeto** (ex: `spartax-app`).
 2. Desative o Google Analytics (opcional) → **Criar projeto**.
 
-## 2. Firestore (banco)
+## 2. Firestore (banco) — obrigatório
 
 1. Menu **Firestore Database** → **Criar banco de dados** → **Iniciar no modo de produção** → região `southamerica-east1` (São Paulo).
 2. Aba **Regras** → apague tudo e cole o conteúdo de `firestore.rules` → **Publicar**.
-3. O documento `spartax/site` é criado sozinho no primeiro acesso do app (semeado com o conteúdo atual).
+3. O documento `spartax/site` (+ subcoleções `galeria` e `noticias`) é criado sozinho no primeiro acesso do app.
 
-## 3. Storage (fotos)
+## 3. Storage (fotos) — OPCIONAL, só com plano Blaze pago
 
-1. Menu **Storage** → **Começar** → mesma região → **Concluir**.
-2. Aba **Regras** → cole o conteúdo de `storage.rules` → **Publicar**.
+Sem Storage o app funciona normal: as fotos são comprimidas e salvas no
+Firestore. Se um dia assinar o Blaze: menu **Storage** → **Começar** → aba
+**Regras** → cole `storage.rules` → **Publicar**. O app passa a subir as
+fotos pra lá sozinho (com fallback automático se falhar).
 
 ## 4. Conectar o app
 
@@ -38,8 +42,8 @@ Banco de dados: **Cloud Firestore** · Arquivos: **Cloud Storage**.
 ## Como funciona no código
 
 - `src/lib/firebase.ts` — inicializa App/Firestore/Storage a partir do `.env`. Sem config, tudo é `null` e o app cai no modo local.
-- `src/store/site.tsx` — `SiteProvider` assina o doc `spartax/site` em tempo real (`onSnapshot`); edições do ADM salvam com debounce de 800 ms. `localStorage` segue como cache offline.
-- `src/store/image.ts` — `processImageFile()` sobe a foto redimensionada ao Storage (`spartax/<pasta>/<id>.jpg`) e devolve a URL pública; sem Firebase, salva dataURL local.
+- `src/store/site.tsx` — `SiteProvider` assina o doc `spartax/site` + subcoleções `galeria` e `noticias` em tempo real; escalares salvam com debounce de 800 ms, listas por diff (adicionados/removidos). `localStorage` segue como cache offline.
+- `src/store/image.ts` — `processImageFile()` tenta o Storage e, se indisponível (plano gratuito), devolve dataURL comprimido (~800px) salvo no Firestore.
 - `firestore.rules` / `storage.rules` — regras prontas pra colar no console.
 
 ## Próximo passo sugerido
