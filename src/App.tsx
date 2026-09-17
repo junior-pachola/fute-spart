@@ -142,7 +142,7 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[#0B0B0C] shadow-2xl ring-1 ring-zinc-800/60 md:max-w-6xl">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col overflow-x-clip bg-[#0B0B0C] shadow-2xl ring-1 ring-zinc-800/60 md:mx-0 md:max-w-none md:ring-0">
       {/* HEADER */}
       <header className="sticky top-0 z-20 border-b-2 border-sparta-600 bg-[#0B0B0C]/95 backdrop-blur">
         <div className="flex items-center justify-between px-2 py-2 md:px-6">
@@ -284,7 +284,7 @@ export default function App() {
         </aside>
 
         <div className="min-w-0 flex-1">
-      <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-4xl">
+      <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-6xl md:[&>div]:px-8">
         {route === "adm" && !admAuth && (
           <div className="p-4">
             <div className="carbon-texture rounded-3xl bg-[#151517] p-6 text-center ring-1 ring-gold-500/30">
