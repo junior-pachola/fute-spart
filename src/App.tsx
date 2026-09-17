@@ -356,44 +356,60 @@ export default function App() {
 
             {/* PRÓXIMO JOGO */}
             <div className="px-4 md:px-8">
-              <div className="card-shadow -mt-1 overflow-hidden rounded-3xl bg-white text-zinc-900">
-                <div className="flex items-center justify-between bg-zinc-100 px-4 py-2">
-                  <p className="text-[10px] font-extrabold tracking-[0.2em] text-sparta-600">
-                    PRÓXIMO JOGO • {site.proximoJogo.competicao}
-                  </p>
-                  <p className="text-[10px] font-bold text-zinc-500">{site.proximoJogo.rodada}</p>
-                </div>
-                <div className="flex items-center justify-between px-5 py-4">
-                  <div className="flex w-24 flex-col items-center gap-1.5">
-                    <Crest size={56} />
-                    <span className="font-display text-center text-base font-extrabold italic leading-tight">{site.proximoJogo.casa}</span>
-                    <span className="text-[10px] font-semibold text-zinc-500">CASA</span>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-display text-3xl font-extrabold italic text-zinc-300">VS</p>
-                    <p className="mt-1 rounded-md bg-sparta-600/10 px-2 py-0.5 text-[10px] font-extrabold text-sparta-600">
-                      {site.proximoJogo.data} • {site.proximoJogo.hora}
-                    </p>
-                  </div>
-                  <div className="flex w-24 flex-col items-center gap-1.5">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 ring-2 ring-zinc-200">
-                      <span className="font-display text-lg font-extrabold italic text-white">
-                        {site.proximoJogo.fora.split(" ").map((p) => p[0]).join("").slice(0, 3)}
-                      </span>
+              <div className="card-shadow relative -mt-1 overflow-hidden rounded-3xl bg-[#0d0d0f] ring-1 ring-white/10">
+                <div className="h-2 bg-[repeating-linear-gradient(-45deg,#C8102E_0_16px,#0d0d0f_16px_32px)]" />
+                <div className="relative px-4 pb-4 pt-4">
+                  <img src={hero} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-sparta-900/50 to-[#0d0d0f]" />
+                  <div className="relative text-center">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-extrabold tracking-[0.2em] text-sparta-400">
+                        PRÓXIMO JOGO • {site.proximoJogo.competicao || "AMISTOSO"}
+                      </p>
+                      <p className="text-[10px] font-bold text-zinc-400">{site.proximoJogo.rodada}</p>
                     </div>
-                    <span className="font-display text-center text-base font-extrabold italic leading-tight">{site.proximoJogo.fora}</span>
-                    <span className="text-[10px] font-semibold text-zinc-500">VISITANTE</span>
+                    <h3 className="font-display mt-1 text-4xl font-extrabold italic leading-none tracking-wide">
+                      CONFRONTO
+                    </h3>
+                    <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+                      <div className="rounded-2xl bg-white px-2 py-3 text-center">
+                        <div className="flex justify-center">
+                          {site.proximoJogo.casaEscudo ? (
+                            <img src={site.proximoJogo.casaEscudo} alt={site.proximoJogo.casa} className="h-16 w-16 object-contain" />
+                          ) : (
+                            <Crest size={64} />
+                          )}
+                        </div>
+                        <p className="font-display mt-1.5 truncate text-lg font-extrabold italic leading-tight text-zinc-900">{site.proximoJogo.casa}</p>
+                        <p className="text-[9px] font-bold tracking-[0.2em] text-zinc-500">CASA</p>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-display flex h-11 w-11 items-center justify-center rounded-full bg-sparta-600 text-base font-extrabold italic shadow-lg">VS</span>
+                      </div>
+                      <div className="rounded-2xl bg-white px-2 py-3 text-center">
+                        <div className="flex justify-center">
+                          {site.proximoJogo.foraEscudo ? (
+                            <img src={site.proximoJogo.foraEscudo} alt={site.proximoJogo.fora} className="h-16 w-16 object-contain" />
+                          ) : (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900">
+                              <span className="font-display text-lg font-extrabold italic text-white">
+                                {site.proximoJogo.fora.split(" ").map((p) => p[0]).join("").slice(0, 3)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="font-display mt-1.5 truncate text-lg font-extrabold italic leading-tight text-zinc-900">{site.proximoJogo.fora}</p>
+                        <p className="text-[9px] font-bold tracking-[0.2em] text-zinc-500">VISITANTE</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-2xl bg-sparta-600 px-4 py-2.5">
+                      <span className="font-display text-base font-extrabold italic">{site.proximoJogo.data}</span>
+                      <span className="truncate text-center text-xs font-bold">{site.proximoJogo.local}</span>
+                      <span className="font-display text-base font-extrabold italic">{site.proximoJogo.hora}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1.5 border-t border-zinc-100 px-5 py-3 text-xs font-medium text-zinc-600">
-                  <p className="flex items-center gap-2">
-                    <Icon name="calendar" size={15} className="text-sparta-600" /> {site.proximoJogo.data} • {site.proximoJogo.hora}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Icon name="pin" size={15} className="text-sparta-600" /> {site.proximoJogo.local}
-                  </p>
-                </div>
-                <div className="flex gap-2 p-3 pt-0">
+                <div className="relative flex gap-2 p-3 pt-0">
                   <button onClick={() => go("agenda")} className="press flex flex-1 items-center justify-center gap-1 rounded-2xl bg-sparta-600 py-3 text-[13px] font-extrabold tracking-wide text-white">
                     VER AGENDA COMPLETA <Icon name="chevron" size={16} />
                   </button>

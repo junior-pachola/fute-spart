@@ -14,7 +14,7 @@ import {
 export interface Atleta { id: string; nome: string; posicao: string; nasc: string; numero: number }
 export interface Evento { id: string; dia: string; mes: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
-export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string }
+export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
 export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number }
 export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE" }
 export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; createdAt?: number }
@@ -46,7 +46,7 @@ const DEFAULTS: SiteState = {
   heroImagem: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=900&auto=format&fit=crop",
   atletas: atletas0.map((a) => ({ ...a, id: uid() })),
   eventos: eventos0.map((e) => ({ ...e, id: uid() })),
-  proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8" },
+  proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "" },
   ultimoJogo: { id: "j1", casa: "SPX", fora: "GRE", golsCasa: 3, golsFora: 1, data: "18 MAI", local: "Estádio Municipal", gols: [{ minuto: "9'", autor: "Kauan" }, { minuto: "54'", autor: "Miguel" }, { minuto: "78'", autor: "Gabriel" }] },
   noticias: noticias0.map((n, i) => ({ ...n, id: uid(), imagem: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=400&auto=format&fit=crop"][i % 4], destaque: i === 0 })),
   parceiros: parceiros0.map((p, i) => ({ id: uid(), nome: p.nome, tipo: p.tipo, detalhe: p.detalhe, cor: ["bg-orange-500","bg-green-600","bg-emerald-500","bg-red-600"][i % 4], nivel: (i === 0 ? "OURO" : i === 1 ? "PRATA" : "BRONZE") as Parceiro["nivel"] })),

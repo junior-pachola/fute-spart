@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../components/brand";
+import { downloadBanner, MatchBannerArt, shareBanner } from "../components/MatchBanner";
 import { uid, useSite, type GaleriaItem } from "../store/site";
 import { processImageFile, processImageFiles } from "../store/image";
 
@@ -44,6 +45,75 @@ function Del({ onClick }: { onClick: () => void }) {
     <button onClick={onClick} className="press rounded-lg bg-red-600/15 px-2.5 py-1.5 text-xs font-bold text-red-400 ring-1 ring-red-600/30">
       Excluir
     </button>
+  );
+}
+
+/** Prévia + exportação do banner do confronto (1080x1350). */
+function BannerTools() {
+  const site = useSite();
+  const capRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(300);
+  const [busy, setBusy] = useState<"idle" | "dl" | "share">("idle");
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el);
+    setW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = w / 1080;
+  const nome = `confronto-${site.proximoJogo.casa}-x-${site.proximoJogo.fora}`.toLowerCase().replace(/\s+/g, "-") + ".png";
+
+  async function baixar() {
+    if (!capRef.current || busy !== "idle") return;
+    setBusy("dl");
+    try {
+      await downloadBanner(capRef.current, nome);
+    } catch {
+      alert("Falha ao gerar a imagem. Tente de novo.");
+    } finally {
+      setBusy("idle");
+    }
+  }
+
+  async function compartilhar() {
+    if (!capRef.current || busy !== "idle") return;
+    setBusy("share");
+    try {
+      const r = await shareBanner(capRef.current, nome);
+      if (r === "downloaded") alert("Este aparelho não compartilha direto — a imagem foi baixada.");
+    } catch (e) {
+      if ((e as Error)?.name !== "AbortError") alert("Falha ao compartilhar. Tente baixar.");
+    } finally {
+      setBusy("idle");
+    }
+  }
+
+  return (
+    <div>
+      <div ref={wrapRef} className="w-full overflow-hidden rounded-2xl ring-1 ring-white/10" style={{ height: 1350 * scale }}>
+        <div style={{ width: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+          <MatchBannerArt />
+        </div>
+      </div>
+      {/* nó em tamanho real, fora da tela, só p/ gerar o PNG */}
+      <div aria-hidden="true" style={{ position: "fixed", left: -12000, top: 0 }}>
+        <MatchBannerArt innerRef={capRef} />
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button onClick={() => void baixar()} disabled={busy !== "idle"} className="press rounded-xl bg-red-600 py-2.5 text-sm font-extrabold disabled:opacity-60">
+          {busy === "dl" ? "GERANDO..." : "BAIXAR PNG"}
+        </button>
+        <button onClick={() => void compartilhar()} disabled={busy !== "idle"} className="press rounded-xl bg-gold-500 py-2.5 text-sm font-extrabold text-black disabled:opacity-60">
+          {busy === "share" ? "GERANDO..." : "COMPARTILHAR"}
+        </button>
+      </div>
+      <p className="mt-1.5 text-[11px] text-zinc-500">Gera imagem 1080x1350 pronta pro WhatsApp, Instagram e impressão.</p>
+    </div>
   );
 }
 
@@ -342,6 +412,21 @@ export default function Admin({ onExit }: { onExit: () => void }) {
                 <Field value={site.proximoJogo.competicao} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, competicao: e.target.value.toUpperCase() } })} placeholder="Competição" />
                 <Field value={site.proximoJogo.rodada} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, rodada: e.target.value.toUpperCase() } })} placeholder="Rodada" />
               </div>
+              <ImageField
+                label="Escudo do mandante (casa)"
+                hint="Vazio = usa o escudo do clube."
+                value={site.proximoJogo.casaEscudo}
+                onChange={(v) => site.update({ proximoJogo: { ...site.proximoJogo, casaEscudo: v } })}
+              />
+              <ImageField
+                label="Escudo do adversário (visitante)"
+                hint="Busque na galeria do celular ao criar o confronto."
+                value={site.proximoJogo.foraEscudo}
+                onChange={(v) => site.update({ proximoJogo: { ...site.proximoJogo, foraEscudo: v } })}
+              />
+            </Sec>
+            <Sec title="Banner do confronto" sub="Arte estilo flyer gerada com os dados acima.">
+              <BannerTools />
             </Sec>
             <Sec title="Último resultado" sub="Placar exibido na tela Jogos.">
               <div className="grid grid-cols-2 gap-2">
