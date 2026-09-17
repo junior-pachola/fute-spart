@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "../components/brand";
 import { uid, useSite, type GaleriaItem } from "../store/site";
-import { fileToResizedDataUrl, filesToResizedDataUrls } from "../store/image";
+import { processImageFile, processImageFiles } from "../store/image";
 
 type Aba = "geral" | "escudo" | "atletas" | "agenda" | "jogos" | "noticias" | "galeria" | "parceiros" | "captacao" | "documentos" | "avisos" | "pin";
 
@@ -57,7 +57,7 @@ function ImageField({ label, hint, value, onChange }: { label: string; hint?: st
     if (!f) return;
     setBusy(true);
     try {
-      onChange(await fileToResizedDataUrl(f));
+      onChange(await processImageFile(f, "site"));
     } catch {
       alert("Não foi possível ler essa imagem. Tente outra.");
     } finally {
@@ -147,7 +147,7 @@ export default function Admin({ onExit }: { onExit: () => void }) {
     if (!files || files.length === 0) return;
     setBusyGal(true);
     try {
-      const urls = await filesToResizedDataUrls(files);
+      const urls = await processImageFiles(files, "galeria");
       site.update({ galeria: [...urls.map((url) => ({ id: uid(), url, tipo: fGaleria.tipo })), ...site.galeria] });
     } catch {
       alert("Alguma imagem não pôde ser lida.");
@@ -161,7 +161,12 @@ export default function Admin({ onExit }: { onExit: () => void }) {
       <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-red-700 to-red-900 p-4">
         <div>
           <p className="font-display text-2xl font-extrabold italic leading-none">PAINEL ADM</p>
-          <p className="text-[11px] text-red-100">Tudo que você alterar aqui reflete no app na hora.</p>
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-red-100">
+            <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider ${site.cloud ? "bg-green-500/25 text-green-200 ring-1 ring-green-400/40" : "bg-black/30 text-red-100 ring-1 ring-white/20"}`}>
+              {site.cloud ? "NUVEM FIREBASE" : "MODO LOCAL"}
+            </span>
+            Tudo reflete no app na hora.
+          </p>
         </div>
         <button onClick={onExit} className="press rounded-xl bg-black/30 px-3 py-2 text-xs font-bold ring-1 ring-white/20">
           Ver app

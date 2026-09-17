@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { db, isFirebaseConfigured, SITE_DOC_PATH } from "../lib/firebase";
 import {
   atletas as atletas0,
   documentos as documentos0,
@@ -73,21 +75,74 @@ function load(): SiteState {
 interface Ctx extends SiteState {
   update: (patch: Partial<SiteState>) => void;
   reset: () => void;
+  /** true quando sincronizando com o Firebase; false = só local. */
+  cloud: boolean;
 }
 
 const SiteCtx = createContext<Ctx | null>(null);
 
 export function SiteProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SiteState>(load);
+  /** JSON do último conteúdo confirmado na nuvem — evita loop de escrita. */
+  const cloudJsonRef = useRef<string | null>(null);
+  /** Só escreve na nuvem depois da 1ª leitura (não sobrescreve a nuvem com padrão). */
+  const syncedRef = useRef(!isFirebaseConfigured);
 
+  // Leitura inicial + tempo real (quando Firebase configurado)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !db) return;
+    const ref = doc(db, SITE_DOC_PATH);
+    void getDoc(ref)
+      .then((snap) => {
+        if (snap.exists()) {
+          const data = { ...DEFAULTS, ...(snap.data() as Partial<SiteState>) };
+          cloudJsonRef.current = JSON.stringify(data);
+          setState(data);
+        } else {
+          // Primeira vez: publica o conteúdo atual como semente
+          void setDoc(ref, load()).catch(() => {});
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        syncedRef.current = true;
+      });
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = { ...DEFAULTS, ...(snap.data() as Partial<SiteState>) };
+        const json = JSON.stringify(data);
+        if (json !== cloudJsonRef.current) {
+          cloudJsonRef.current = json;
+          syncedRef.current = true;
+          setState(data);
+        }
+      },
+      () => {}
+    );
+    return unsub;
+  }, []);
+
+  // Persistência: sempre no aparelho + nuvem (com debounce) quando configurada
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ }
+    if (!isFirebaseConfigured || !db || !syncedRef.current) return;
+    const json = JSON.stringify(state);
+    if (json === cloudJsonRef.current) return; // já está na nuvem
+    cloudJsonRef.current = json; // otimista — ignora o eco do snapshot
+    const t = setTimeout(() => {
+      if (!db) return;
+      void setDoc(doc(db, SITE_DOC_PATH), JSON.parse(json), { merge: true }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
   }, [state]);
 
   const value = useMemo<Ctx>(() => ({
     ...state,
     update: (patch) => setState((s) => ({ ...s, ...patch })),
     reset: () => setState(DEFAULTS),
+    cloud: isFirebaseConfigured,
   }), [state]);
 
   return <SiteCtx.Provider value={value}>{children}</SiteCtx.Provider>;

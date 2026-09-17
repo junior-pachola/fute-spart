@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Conteúdo público do clube (leitura aberta p/ o app).
+    // Escrita aberta p/ o painel ADM funcionar sem login.
+    // TODO: quando ativar login, troque `write` por `request.auth != null`.
+    match /spartax/site {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
