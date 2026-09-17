@@ -437,6 +437,36 @@ export default function Admin({ onExit }: { onExit: () => void }) {
               </div>
               <Field value={site.ultimoJogo.data} onChange={(e) => site.update({ ultimoJogo: { ...site.ultimoJogo, data: e.target.value } })} placeholder="Data — ex: 18 MAI" />
             </Sec>
+            <Sec title="Classificação" sub="Pontos e saldo calculados sozinhos (P = V×3 + E). Forma: letras V/E/D, ex VVEVD.">
+              {site.classificacao.map((t) => (
+                <div key={t.id} className="rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
+                  <div className="flex items-center gap-1.5">
+                    <Field value={t.sigla} maxLength={3} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, sigla: e.target.value.toUpperCase() } : x)) })} placeholder="SIG" className="w-14 text-center font-extrabold" />
+                    <Field value={t.time} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, time: e.target.value } : x)) })} placeholder="Nome do time" />
+                    <Del onClick={() => site.update({ classificacao: site.classificacao.filter((x) => x.id !== t.id) })} />
+                  </div>
+                  <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+                    {(["j", "v", "e", "d", "gp", "gc"] as const).map((k) => (
+                      <label key={k} className="text-center">
+                        <span className="text-[9px] font-extrabold text-zinc-500">{k.toUpperCase()}</span>
+                        <input value={t[k]} inputMode="numeric" onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, [k]: Number(e.target.value) || 0 } : x)) })} className="w-full rounded-lg bg-black/50 p-1.5 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                      </label>
+                    ))}
+                    <label className="text-center">
+                      <span className="text-[9px] font-extrabold text-zinc-500">FORMA</span>
+                      <input value={t.forma} maxLength={5} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, forma: e.target.value.toUpperCase().replace(/[^VED]/g, "") } : x)) })} className="w-full rounded-lg bg-black/50 p-1.5 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                    </label>
+                  </div>
+                  <p className="mt-1 text-right text-[11px] text-zinc-500">{t.v * 3 + t.e} pts • saldo {t.gp - t.gc > 0 ? `+${t.gp - t.gc}` : t.gp - t.gc}</p>
+                </div>
+              ))}
+              <button
+                onClick={() => site.update({ classificacao: [...site.classificacao, { id: uid(), time: "Novo time", sigla: "NOV", j: 0, v: 0, e: 0, d: 0, gp: 0, gc: 0, forma: "" }] })}
+                className="press w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold ring-1 ring-white/10"
+              >
+                + Adicionar time
+              </button>
+            </Sec>
           </>
         )}
 

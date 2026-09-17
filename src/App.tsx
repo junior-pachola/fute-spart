@@ -582,54 +582,157 @@ export default function App() {
           </div>
         )}
 
-        {route === "jogos" && (
-          <div className="space-y-3 p-4 md:grid md:grid-cols-2 md:items-start md:p-8">
-            <div className="carbon-texture overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/10">
-              <p className="px-4 pt-3 text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">ÚLTIMO RESULTADO • REGIONAL</p>
-              <div className="flex items-center justify-between px-6 py-4">
-                <div className="flex flex-col items-center gap-1">
-                  <Crest size={48} />
-                  <span className="font-display text-sm font-bold italic">{site.ultimoJogo.casa}</span>
-                </div>
-                <div className="text-center">
-                  <p className="font-display text-5xl font-extrabold italic leading-none">{site.ultimoJogo.golsCasa}<span className="mx-1 text-2xl text-zinc-600">—</span>{site.ultimoJogo.golsFora}</p>
-                  <p className="mt-1 text-[10px] font-bold tracking-widest text-green-400">
-                    {site.ultimoJogo.golsCasa > site.ultimoJogo.golsFora ? "VITÓRIA" : site.ultimoJogo.golsCasa === site.ultimoJogo.golsFora ? "EMPATE" : "DERROTA"} • {site.ultimoJogo.data}
-                  </p>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 font-display text-sm font-extrabold italic">{site.ultimoJogo.fora}</div>
-                  <span className="font-display text-sm font-bold italic text-zinc-400">{site.ultimoJogo.fora}</span>
-                </div>
-              </div>
-              {(site.ultimoJogo.gols?.length ?? 0) > 0 && (
-                <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 text-center">
-                  {site.ultimoJogo.gols!.map((g) => (
-                    <p key={g.minuto + g.autor} className="py-2.5 text-[11px] text-zinc-400">
-                      <span className="font-extrabold text-white">{g.minuto}</span> {g.autor}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="overflow-hidden rounded-3xl bg-white text-zinc-900">
-              <p className="bg-zinc-100 px-4 py-2 text-[10px] font-extrabold tracking-[0.25em] text-sparta-600">CLASSIFICAÇÃO • GRUPO B</p>
+        {route === "jogos" && (() => {
+          const tabela = [...site.classificacao]
+            .map((t) => ({ ...t, p: t.v * 3 + t.e, sg: t.gp - t.gc }))
+            .sort((a, b) => b.p - a.p || b.v - a.v || b.sg - a.sg || b.gp - a.gp);
+          const meuIdx = Math.max(0, tabela.findIndex((t) => t.time.toUpperCase() === nomeClube.toUpperCase() || t.sigla === site.escudo.sigla));
+          const meu = tabela[meuIdx];
+          const ap = meu && meu.j > 0 ? Math.round((meu.p / (meu.j * 3)) * 100) : 0;
+          const ult = site.ultimoJogo;
+          const res = ult.golsCasa > ult.golsFora ? ["VITÓRIA", "text-green-400"] : ult.golsCasa === ult.golsFora ? ["EMPATE", "text-zinc-400"] : ["DERROTA", "text-red-400"];
+          return (
+          <div className="space-y-3 p-4 md:p-8">
+            {/* faixa de status */}
+            <div className="grid grid-cols-3 gap-2">
               {[
-                ["1", nomeClube, "18", true],
-                ["2", site.proximoJogo.fora, "15", false],
-                ["3", "Grêmio Regional", "12", false],
-                ["4", "União Norte", "9", false],
-              ].map(([pos, time, pts, me]) => (
-                <div key={time as string} className={`flex items-center gap-3 px-4 py-2.5 text-sm ${me ? "bg-sparta-600/[0.07] font-extrabold" : "border-t border-zinc-100"}`}>
-                  <span className={`w-5 text-center font-display text-base font-extrabold italic ${pos === "1" ? "text-sparta-600" : "text-zinc-400"}`}>{pos}</span>
-                  <span className="flex-1">{time}</span>
-                  <span className="font-extrabold">{pts} pts</span>
+                [`${String(meuIdx + 1).padStart(2, "0")}º`, "POSIÇÃO"],
+                [`${meu?.p ?? 0}`, "PONTOS"],
+                [`${ap}%`, "APROVEIT."],
+              ].map(([n, l]) => (
+                <div key={l} className="carbon-texture rounded-2xl bg-[#151517] p-3 text-center ring-1 ring-white/10">
+                  <p className="font-display text-3xl font-extrabold italic leading-none">{n}</p>
+                  <p className="mt-1 text-[9px] font-bold tracking-[0.2em] text-zinc-500">{l}</p>
                 </div>
               ))}
             </div>
+
+            <div className="space-y-3 md:grid md:grid-cols-2 md:items-start md:gap-3 md:space-y-0">
+              {/* último resultado */}
+              <div className="carbon-texture overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/10">
+                <div className="flex items-center justify-between px-4 pt-3">
+                  <p className="text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">ÚLTIMO RESULTADO</p>
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold tracking-wider ${res[1]} bg-white/5 ring-1 ring-white/10`}>{res[0]}</span>
+                </div>
+                <div className="flex items-center justify-between px-6 py-4">
+                  <div className="flex w-16 flex-col items-center gap-1.5">
+                    <Crest size={52} />
+                    <span className="font-display text-sm font-bold italic">{ult.casa}</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-display text-6xl font-extrabold italic leading-none">{ult.golsCasa}<span className="mx-1.5 text-2xl not-italic text-zinc-600">–</span>{ult.golsFora}</p>
+                    <p className="mt-1.5 text-[10px] font-bold tracking-widest text-zinc-500">{ult.data} • {ult.local}</p>
+                  </div>
+                  <div className="flex w-16 flex-col items-center gap-1.5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 font-display text-sm font-extrabold italic">{ult.fora}</div>
+                    <span className="font-display text-sm font-bold italic text-zinc-400">{ult.fora}</span>
+                  </div>
+                </div>
+                {(ult.gols?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-white/10 px-4 py-2.5">
+                    {ult.gols!.map((g) => (
+                      <p key={g.minuto + g.autor} className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-black">●</span>
+                        <span className="font-extrabold text-white">{g.minuto}</span> {g.autor}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* próximo jogo */}
+              <button onClick={() => go("agenda")} className="press block w-full overflow-hidden rounded-3xl bg-gradient-to-br from-sparta-600 to-sparta-700 p-[1px] text-left">
+                <div className="rounded-3xl bg-[#151517] p-4">
+                  <p className="text-[10px] font-extrabold tracking-[0.25em] text-sparta-400">PRÓXIMO JOGO • {site.proximoJogo.competicao}</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex flex-1 flex-col items-center gap-1">
+                      {site.proximoJogo.casaEscudo ? (
+                        <img src={site.proximoJogo.casaEscudo} alt="" className="h-12 w-12 object-contain" />
+                      ) : (
+                        <Crest size={48} />
+                      )}
+                      <span className="font-display text-sm font-bold italic">{site.proximoJogo.casa}</span>
+                    </div>
+                    <span className="font-display px-2 text-2xl font-extrabold italic text-zinc-500">VS</span>
+                    <div className="flex flex-1 flex-col items-center gap-1">
+                      {site.proximoJogo.foraEscudo ? (
+                        <img src={site.proximoJogo.foraEscudo} alt="" className="h-12 w-12 object-contain" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 font-display text-xs font-extrabold italic">{site.proximoJogo.fora.slice(0, 3)}</div>
+                      )}
+                      <span className="font-display text-sm font-bold italic">{site.proximoJogo.fora}</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-white/5 py-2 text-xs font-bold ring-1 ring-white/10">
+                    <Icon name="calendar" size={14} className="text-sparta-400" /> {site.proximoJogo.data} • {site.proximoJogo.hora}
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* classificação completa */}
+            <div className="overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/10">
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[10px] font-extrabold tracking-[0.25em] text-zinc-400">CLASSIFICAÇÃO • GRUPO B</p>
+                <span className="rounded-md bg-sparta-600/15 px-2 py-0.5 text-[10px] font-extrabold text-sparta-400 ring-1 ring-sparta-600/30">TEMPORADA 2026</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] border-collapse text-center text-[13px]">
+                  <thead>
+                    <tr className="border-y border-white/10 text-[10px] font-extrabold tracking-wider text-zinc-500">
+                      <th className="py-2 pl-4 pr-1 font-extrabold">#</th>
+                      <th className="px-2 py-2 text-left font-extrabold">TIME</th>
+                      {(["P", "J", "V", "E", "D", "GP", "GC", "SG"] as const).map((c) => (
+                        <th key={c} className={`px-2 py-2 font-extrabold ${c === "P" ? "text-white" : ""}`}>{c}</th>
+                      ))}
+                      <th className="py-2 pl-2 pr-4 font-extrabold">FORMA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tabela.map((t, i) => {
+                      const isMeu = i === meuIdx;
+                      return (
+                        <tr key={t.id} className={`border-b border-white/5 ${isMeu ? "bg-sparta-600/[0.08]" : ""}`}>
+                          <td className="py-2.5 pl-4 pr-1">
+                            <span className={`inline-block w-1.5 rounded-full ${i < 2 ? "bg-green-500" : i === tabela.length - 1 ? "bg-red-500" : "bg-zinc-700"}`} style={{ height: 22 }} />
+                            <span className="font-display ml-1.5 text-base font-extrabold italic text-zinc-300">{i + 1}</span>
+                          </td>
+                          <td className="px-2 py-2.5 text-left">
+                            <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 align-middle text-[10px] font-extrabold">{t.sigla}</span>
+                            <span className={`font-bold ${isMeu ? "text-white" : "text-zinc-300"}`}>{t.time}</span>
+                          </td>
+                          <td className="px-2 py-2.5 font-extrabold text-white">{t.p}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.j}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.v}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.e}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.d}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.gp}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.gc}</td>
+                          <td className="px-2 py-2.5 text-zinc-400">{t.sg > 0 ? `+${t.sg}` : t.sg}</td>
+                          <td className="py-2.5 pl-2 pr-4">
+                            <span className="flex justify-end gap-1 md:justify-center">
+                              {t.forma.slice(-5).split("").map((f, k) => (
+                                <span key={k} className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black ${f === "V" ? "bg-green-500 text-black" : f === "E" ? "bg-zinc-500 text-black" : "bg-red-500 text-white"}`}>
+                                  {f}
+                                </span>
+                              ))}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-[10px] font-bold text-zinc-500">
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-full bg-green-500" /> Zona de classificação</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-full bg-red-500" /> Rebaixamento</span>
+                <span className="ml-auto">P pontos • J jogos • SG saldo de gols</span>
+              </div>
+            </div>
           </div>
-        )}
+          );
+        })()}
 
         {route === "noticias" && (
           <div className="p-4">

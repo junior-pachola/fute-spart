@@ -22,6 +22,8 @@ export interface Projeto { titulo: string; subtitulo: string; valorTotal: string
 export interface Documento { id: string; nome: string; atualizado: string; tamanho: string }
 export interface Notificacao { id: string; titulo: string; data: string; lida: boolean }
 export interface Escudo { nome: string; sigla: string; primaria: string; secundaria: string; imagemUrl: string }
+/** Linha da tabela — pontos e saldo calculados (P = V*3+E). Forma: ex "VVEVD". */
+export interface TimeTabela { id: string; time: string; sigla: string; j: number; v: number; e: number; d: number; gp: number; gc: number; forma: string }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -38,6 +40,7 @@ export interface SiteState {
   projeto: Projeto;
   documentos: Documento[];
   notificacoes: Notificacao[];
+  classificacao: TimeTabela[];
   pin: string;
 }
 
@@ -56,6 +59,12 @@ const DEFAULTS: SiteState = {
   projeto: { ...projeto0 },
   documentos: documentos0.map((d, i) => ({ id: uid(), nome: d, atualizado: "mai/26", tamanho: `${(1 + (i % 3)).toFixed(1)} MB` })),
   notificacoes: notifs0.map((n) => ({ ...n, id: uid() })),
+  classificacao: [
+    { time: "Spartax", sigla: "SPX", j: 7, v: 6, e: 0, d: 1, gp: 19, gc: 6, forma: "VVVVV" },
+    { time: "A.E. Clube", sigla: "AEC", j: 7, v: 5, e: 0, d: 2, gp: 15, gc: 8, forma: "VVVDV" },
+    { time: "Grêmio Regional", sigla: "GRE", j: 7, v: 4, e: 0, d: 3, gp: 12, gc: 11, forma: "VDVDE" },
+    { time: "União Norte", sigla: "UNI", j: 7, v: 3, e: 0, d: 4, gp: 9, gc: 13, forma: "DVDVE" },
+  ].map((t) => ({ ...t, id: uid() })),
   pin: "1234",
 };
 
@@ -88,7 +97,7 @@ const SiteCtx = createContext<Ctx | null>(null);
  */
 const SCALAR_KEYS = [
   "escudo", "heroImagem", "atletas", "eventos", "proximoJogo",
-  "ultimoJogo", "parceiros", "projeto", "documentos", "notificacoes", "pin",
+  "ultimoJogo", "parceiros", "projeto", "documentos", "notificacoes", "classificacao", "pin",
 ] as const;
 
 function pickScalars(o: Record<string, unknown>): Record<string, unknown> {
