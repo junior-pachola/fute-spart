@@ -76,8 +76,8 @@ function splitDetalhe(detalhe: string): [string, string] {
   return [p[0].trim(), p.slice(1).join("—").trim()];
 }
 
-function dataEvento(e: { dia: string; mes: string }, ano: number): Date {
-  return new Date(ano, mesIdx(e.mes), Number(e.dia) || 1);
+function dataEvento(e: { dia: string; mes: string; ano?: string }, anoPadrao: number): Date {
+  return new Date(Number(e.ano) || anoPadrao, mesIdx(e.mes), Number(e.dia) || 1);
 }
 
 function diasAte(data: Date): number {
@@ -900,7 +900,7 @@ export default function App() {
 
           const porDia = new Map<number, typeof site.eventos>();
           for (const e of site.eventos) {
-            if (mesIdx(e.mes) !== calMes) continue;
+            if (mesIdx(e.mes) !== calMes || (Number(e.ano) || calAno) !== calAno) continue;
             const arr = porDia.get(Number(e.dia)) ?? [];
             arr.push(e);
             porDia.set(Number(e.dia), arr);
@@ -923,8 +923,8 @@ export default function App() {
             setDiaSel(null);
             setEvAberto(null);
           }
-          function irPara(e: { dia: string; mes: string }) {
-            setCalAno(anoHoje);
+          function irPara(e: { dia: string; mes: string; ano?: string }) {
+            setCalAno(Number(e.ano) || anoHoje);
             setCalMes(mesIdx(e.mes));
             setDiaSel(Number(e.dia));
             setEvAberto(null);
@@ -1056,7 +1056,7 @@ export default function App() {
                 <div className="mt-2 space-y-2.5">
                   {evsDia.map((e) => {
                     const [titulo, local] = splitDetalhe(e.detalhe);
-                    const diff = diasAte(dataEvento(e, calAno));
+                    const diff = diasAte(dataEvento(e, Number(e.ano) || calAno));
                     const aberto = evAberto === e.id;
                     return (
                       <div key={e.id} className="overflow-hidden rounded-2xl bg-[#151517] ring-1 ring-white/10">
@@ -1090,7 +1090,7 @@ export default function App() {
                           <div className="space-y-2 border-t border-white/10 px-4 py-3 text-[13px]">
                             <p className="flex items-center gap-2 text-zinc-300">
                               <Icon name="calendar" size={15} className="shrink-0 text-sparta-400" />
-                              {e.dia} de {MESES_NOME[mesIdx(e.mes)].toLowerCase()} de {calAno} • {e.hora}
+                              {e.dia} de {MESES_NOME[mesIdx(e.mes)].toLowerCase()} de {e.ano || calAno} • {e.hora}
                             </p>
                             {local && (
                             <p className="flex items-center gap-2 text-zinc-300">

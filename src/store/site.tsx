@@ -3,7 +3,6 @@ import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from 
 import { db, isFirebaseConfigured, SITE_DOC_PATH } from "../lib/firebase";
 import {
   documentos as documentos0,
-  eventos as eventos0,
   noticias as noticias0,
   notificacoesIniciais as notifs0,
   parceiros as parceiros0,
@@ -11,7 +10,7 @@ import {
 } from "../data/mock";
 
 export interface Atleta { id: string; nome: string; posicao: string; nasc: string; numero: number; foto: string; gols: number; assistencias: number; jogos: number; amarelos: number; vermelhos: number }
-export interface Evento { id: string; dia: string; mes: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
+export interface Evento { id: string; dia: string; mes: string; ano: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
 export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
 export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number }
@@ -55,7 +54,11 @@ const DEFAULTS: SiteState = {
     { nome: "ENZO GABRIEL", posicao: "Volante", nasc: "03/05/2012", numero: 5, gols: 2, assistencias: 1, jogos: 6, amarelos: 3, vermelhos: 1 },
     { nome: "MATHEUS SANTOS", posicao: "Ponta Esquerda", nasc: "28/08/2011", numero: 11, gols: 3, assistencias: 5, jogos: 7, amarelos: 0, vermelhos: 0 },
   ].map((a) => ({ ...a, id: uid(), foto: "" })),
-  eventos: eventos0.map((e) => ({ ...e, id: uid() })),
+  eventos: [
+    { dia: "25", mes: "MAI", ano: "2026", hora: "15:30", titulo: "JOGO", detalhe: "Spartax x A.E. Clube — Estádio Municipal", tipo: "JOGO" as const },
+    { dia: "27", mes: "MAI", ano: "2026", hora: "19:00", titulo: "TREINO", detalhe: "Treino Técnico — CT Spartax", tipo: "TREINO" as const },
+    { dia: "29", mes: "MAI", ano: "2026", hora: "08:30", titulo: "TREINO", detalhe: "Treino Físico — CT Spartax", tipo: "TREINO" as const },
+  ].map((e) => ({ ...e, id: uid() })),
   proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "" },
   ultimoJogo: { id: "j1", casa: "SPX", fora: "GRE", golsCasa: 3, golsFora: 1, data: "18 MAI", local: "Estádio Municipal", gols: [{ minuto: "9'", autor: "Kauan" }, { minuto: "54'", autor: "Miguel" }, { minuto: "78'", autor: "Gabriel" }] },
   noticias: noticias0.map((n, i) => ({ ...n, id: uid(), imagem: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=400&auto=format&fit=crop"][i % 4], destaque: i === 0 })),

@@ -239,7 +239,21 @@ export default function Admin({ onExit, aba, setAba }: { onExit: () => void; aba
 
   // forms locais
   const [fAtleta, setFAtleta] = useState({ nome: "", posicao: "", nasc: "", numero: "" });
-  const [fEvento, setFEvento] = useState({ dia: "", mes: "MAI", hora: "", titulo: "Treino no CT", detalhe: "", tipo: "TREINO" as "JOGO" | "TREINO" });
+  const [fEvento, setFEvento] = useState({ dia: "", mes: "MAI", ano: String(new Date().getFullYear()), hora: "", titulo: "Treino no CT", detalhe: "", tipo: "TREINO" as "JOGO" | "TREINO", repetir: 1 });
+
+const MESES_ADM = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+/** Soma dias a uma data (dia/mes/ano) e devolve o novo trio — para repetição semanal. */
+function somarDias(dia: string, mes: string, ano: string, add: number): { dia: string; mes: string; ano: string } | null {
+  const mi = MESES_ADM.indexOf(mes.toUpperCase().slice(0, 3));
+  const a = Number(ano);
+  const d = Number(dia);
+  if (mi < 0 || !a || !d) return null;
+  const dt = new Date(a, mi, d);
+  if (dt.getDate() !== d || dt.getMonth() !== mi) return null; // ex: 31 de fevereiro
+  dt.setDate(dt.getDate() + add);
+  return { dia: String(dt.getDate()).padStart(2, "0"), mes: MESES_ADM[dt.getMonth()], ano: String(dt.getFullYear()) };
+}
   const [fNoticia, setFNoticia] = useState({ titulo: "", data: "", categoria: "Clube", imagem: "" });
   const [fParceiro, setFParceiro] = useState({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" as "OURO" | "PRATA" | "BRONZE" });
   const [fGaleria, setFGaleria] = useState({ url: "", tipo: "FOTO" as GaleriaItem["tipo"] });
@@ -484,9 +498,10 @@ export default function Admin({ onExit, aba, setAba }: { onExit: () => void; aba
 
         {aba === "agenda" && (
           <Sec title="Eventos da agenda" sub="Jogos e treinos exibidos no calendário.">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <Field value={fEvento.dia} inputMode="numeric" maxLength={2} onChange={(e) => setFEvento({ ...fEvento, dia: e.target.value })} placeholder="Dia" />
-              <Field value={fEvento.mes} onChange={(e) => setFEvento({ ...fEvento, mes: e.target.value.toUpperCase() })} placeholder="Mês" />
+              <Field value={fEvento.mes} maxLength={3} onChange={(e) => setFEvento({ ...fEvento, mes: e.target.value.toUpperCase() })} placeholder="Mês" />
+              <Field value={fEvento.ano} inputMode="numeric" maxLength={4} onChange={(e) => setFEvento({ ...fEvento, ano: e.target.value.replace(/\D/g, "") })} placeholder="Ano" />
               <Field value={fEvento.hora} onChange={(e) => setFEvento({ ...fEvento, hora: e.target.value })} placeholder="Hora" />
             </div>
             <Field value={fEvento.detalhe} onChange={(e) => setFEvento({ ...fEvento, detalhe: e.target.value })} placeholder="Ex: Spartax x A.E. Clube — Estádio Municipal" />
@@ -495,20 +510,41 @@ export default function Admin({ onExit, aba, setAba }: { onExit: () => void; aba
                 <button key={t} onClick={() => setFEvento({ ...fEvento, tipo: t })} className={`rounded-xl py-2 text-xs font-extrabold ${fEvento.tipo === t ? "bg-red-600" : "bg-black/40 text-zinc-400 ring-1 ring-white/10"}`}>{t}</button>
               ))}
             </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-bold text-zinc-400">Repetir toda semana (treino fixo):</p>
+              <div className="grid grid-cols-4 gap-2">
+                {([1, 4, 8, 12] as const).map((n) => (
+                  <button key={n} onClick={() => setFEvento({ ...fEvento, repetir: n })} className={`rounded-xl py-2 text-xs font-extrabold ${fEvento.repetir === n ? "bg-red-600" : "bg-black/40 text-zinc-400 ring-1 ring-white/10"}`}>
+                    {n === 1 ? "1×" : `${n}×`}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button
               onClick={() => {
                 if (!fEvento.dia || !fEvento.hora) return alert("Informe dia e hora.");
-                site.update({ eventos: [...site.eventos, { id: uid(), dia: fEvento.dia, mes: fEvento.mes || "MAI", hora: fEvento.hora, titulo: fEvento.tipo, detalhe: fEvento.detalhe || (fEvento.tipo === "JOGO" ? "Jogo" : "Treino no CT"), tipo: fEvento.tipo }] });
-                setFEvento({ dia: "", mes: "MAI", hora: "", titulo: "Treino no CT", detalhe: "", tipo: "TREINO" });
+                const base = somarDias(fEvento.dia, fEvento.mes || "MAI", fEvento.ano || String(new Date().getFullYear()), 0);
+                if (!base) return alert("Data inválida. Confira dia, mês e ano.");
+                const novos = Array.from({ length: fEvento.repetir }, (_, i) => {
+                  const dt = somarDias(base.dia, base.mes, base.ano, i * 7)!;
+                  return {
+                    id: uid(), dia: dt.dia, mes: dt.mes, ano: dt.ano, hora: fEvento.hora,
+                    titulo: fEvento.tipo,
+                    detalhe: fEvento.detalhe || (fEvento.tipo === "JOGO" ? "Jogo" : "Treino no CT"),
+                    tipo: fEvento.tipo,
+                  };
+                });
+                site.update({ eventos: [...site.eventos, ...novos] });
+                setFEvento({ dia: "", mes: "MAI", ano: String(new Date().getFullYear()), hora: "", titulo: "Treino no CT", detalhe: "", tipo: "TREINO", repetir: 1 });
               }}
               className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
             >
-              CRIAR EVENTO
+              {fEvento.repetir === 1 ? "CRIAR EVENTO" : `CRIAR ${fEvento.repetir} EVENTOS SEMANAIS`}
             </button>
-            {site.eventos.map((e) => (
+            {[...site.eventos].sort((a, b) => (a.ano + a.mes + a.dia).localeCompare(b.ano + b.mes + b.dia)).map((e) => (
               <div key={e.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
                 <span className={`rounded-md px-2 py-1 text-[10px] font-extrabold ${e.tipo === "JOGO" ? "bg-red-600" : "bg-white/10 text-zinc-300"}`}>{e.tipo}</span>
-                <p className="min-w-0 flex-1 truncate text-xs"><b>{e.dia}/{e.mes} {e.hora}</b> — {e.detalhe}</p>
+                <p className="min-w-0 flex-1 truncate text-xs"><b>{e.dia}/{e.mes}/{e.ano ?? "—"} {e.hora}</b> — {e.detalhe}</p>
                 <Del onClick={() => site.update({ eventos: site.eventos.filter((x) => x.id !== e.id) })} />
               </div>
             ))}
