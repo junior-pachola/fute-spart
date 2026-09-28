@@ -62,6 +62,40 @@ function iniciais(nome: string): string {
   return nome.split(" ").map((p) => p[0]).slice(0, 2).join("");
 }
 
+const MESES_PT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const MESES_NOME = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function mesIdx(mes: string): number {
+  const i = MESES_PT.indexOf(mes.toUpperCase().slice(0, 3));
+  return i < 0 ? new Date().getMonth() : i;
+}
+
+function splitDetalhe(detalhe: string): [string, string] {
+  const p = detalhe.split("—");
+  if (p.length < 2) return [detalhe, ""];
+  return [p[0].trim(), p.slice(1).join("—").trim()];
+}
+
+function dataEvento(e: { dia: string; mes: string }, ano: number): Date {
+  return new Date(ano, mesIdx(e.mes), Number(e.dia) || 1);
+}
+
+function diasAte(data: Date): number {
+  const h = new Date();
+  h.setHours(0, 0, 0, 0);
+  const t = new Date(data);
+  t.setHours(0, 0, 0, 0);
+  return Math.round((t.getTime() - h.getTime()) / 86400000);
+}
+
+function textoCountdown(diff: number): string {
+  if (diff === 0) return "É HOJE";
+  if (diff === 1) return "AMANHÃ";
+  if (diff > 1) return `EM ${diff} DIAS`;
+  if (diff === -1) return "ONTEM";
+  return `HÁ ${Math.abs(diff)} DIAS`;
+}
+
 function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-center justify-between">
@@ -230,6 +264,11 @@ export default function App() {
   const [atletaSel, setAtletaSel] = useState<string | null>(null);
   const [filtroSetor, setFiltroSetor] = useState<"TODOS" | "GOL" | "DEF" | "MEI" | "ATA">("TODOS");
   const [ordem, setOrdem] = useState<"numero" | "gols">("numero");
+  const [calAno, setCalAno] = useState(() => new Date().getFullYear());
+  const [calMes, setCalMes] = useState(() => new Date().getMonth());
+  const [diaSel, setDiaSel] = useState<number | null>(() => new Date().getDate());
+  const [filtroEv, setFiltroEv] = useState<"TODOS" | "JOGO" | "TREINO">("TODOS");
+  const [evAberto, setEvAberto] = useState<string | null>(null);
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
 
   useEffect(() => {
@@ -258,7 +297,6 @@ export default function App() {
   const ouro = site.parceiros.find((p) => p.nivel === "OURO") ?? site.parceiros[0];
   const demaisParceiros = site.parceiros.filter((p) => p !== ouro);
   const percWidth = Math.min(100, Math.max(0, parseFloat(site.projeto.percentual.replace(",", ".")) || 0));
-  const diasDestaque = new Set(site.eventos.map((e) => e.dia));
 
   function go(r: Route) {
     setRoute(r);
@@ -847,69 +885,274 @@ export default function App() {
           );
         })()}
 
-        {route === "agenda" && (
-          <div className="p-4">
-            <div className="card-shadow overflow-hidden rounded-3xl bg-white text-zinc-900">
-              <div className="flex items-center justify-between px-4 py-3">
-                <Icon name="back" size={18} className="text-zinc-300" />
-                <p className="font-display text-lg font-extrabold italic tracking-widest">
-                  {site.eventos[0]?.mes ?? "MAI"} 2026
-                </p>
-                <Icon name="chevron" size={18} className="text-zinc-300" />
-              </div>
-              <div className="grid grid-cols-7 gap-1 px-4 text-center text-[10px] font-extrabold text-zinc-400">
-                {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
-                  <span key={i}>{d}</span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1 p-4 pt-2 text-center text-[13px] font-semibold">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <span key={`b${i}`} className="py-1.5 text-zinc-300">{28 + i}</span>
-                ))}
-                {Array.from({ length: 27 }).map((_, i) => {
-                  const d = String(i + 1);
-                  const has = diasDestaque.has(d);
-                  const isJogo = site.eventos.some((e) => e.dia === d && e.tipo === "JOGO");
-                  return (
-                    <span
-                      key={d}
-                      className={`py-1.5 ${isJogo ? "rounded-full bg-sparta-600 font-extrabold text-white shadow" : has ? "rounded-full bg-zinc-100 font-bold" : ""}`}
-                    >
-                      {d}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-4 space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
-              {site.eventos.map((e) => (
-                <div key={e.id} className="flex gap-3 rounded-2xl bg-[#151517] p-3.5 ring-1 ring-white/10">
-                  <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-white/[0.06] py-2">
-                    <span className="font-display text-2xl font-extrabold italic leading-none text-sparta-400">{e.dia}</span>
-                    <span className="text-[9px] font-extrabold tracking-widest text-zinc-400">{e.mes}</span>
-                    <span className="mt-1 text-[10px] font-bold text-zinc-300">{e.hora}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold tracking-wider ${e.tipo === "JOGO" ? "bg-sparta-600 text-white" : "bg-white/10 text-zinc-300"}`}>
-                        {e.tipo}
-                      </span>
-                      <p className="truncate text-[13px] font-bold">{e.detalhe}</p>
-                    </div>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
-                      <Icon name="pin" size={13} /> {e.detalhe}
+        {route === "agenda" && (() => {
+          const anoHoje = new Date().getFullYear();
+          const hojeD = new Date();
+          const ehMesAtual = calAno === hojeD.getFullYear() && calMes === hojeD.getMonth();
+          const primeiro = new Date(calAno, calMes, 1).getDay();
+          const diasNoMes = new Date(calAno, calMes + 1, 0).getDate();
+          const diasAnt = new Date(calAno, calMes, 0).getDate();
+          const cells: { dia: number; fora: boolean }[] = [];
+          for (let i = primeiro - 1; i >= 0; i--) cells.push({ dia: diasAnt - i, fora: true });
+          for (let d = 1; d <= diasNoMes; d++) cells.push({ dia: d, fora: false });
+          let proxFill = 1;
+          while (cells.length % 7 !== 0) cells.push({ dia: proxFill++, fora: true });
+
+          const porDia = new Map<number, typeof site.eventos>();
+          for (const e of site.eventos) {
+            if (mesIdx(e.mes) !== calMes) continue;
+            const arr = porDia.get(Number(e.dia)) ?? [];
+            arr.push(e);
+            porDia.set(Number(e.dia), arr);
+          }
+          const dia = diaSel ?? (ehMesAtual ? hojeD.getDate() : 0);
+          const evsDia = (porDia.get(dia) ?? []).filter((e) => filtroEv === "TODOS" || e.tipo === filtroEv);
+          const futuros = [...site.eventos]
+            .map((e) => ({ e, diff: diasAte(dataEvento(e, anoHoje)) }))
+            .filter((x) => x.diff >= 0)
+            .sort((a, b) => a.diff - b.diff);
+          const proxEv = futuros[0];
+
+          function mudaMes(dir: 1 | -1) {
+            let m = calMes + dir;
+            let a = calAno;
+            if (m < 0) { m = 11; a--; }
+            if (m > 11) { m = 0; a++; }
+            setCalMes(m);
+            setCalAno(a);
+            setDiaSel(null);
+            setEvAberto(null);
+          }
+          function irPara(e: { dia: string; mes: string }) {
+            setCalAno(anoHoje);
+            setCalMes(mesIdx(e.mes));
+            setDiaSel(Number(e.dia));
+            setEvAberto(null);
+          }
+
+          function chipCount(diff: number) {
+            return diff === 0
+              ? "bg-green-600 text-white"
+              : diff > 0
+                ? "bg-sparta-600 text-white"
+                : "bg-white/10 text-zinc-500";
+          }
+
+          return (
+          <div className="space-y-3 p-4 md:p-8">
+            {/* próximo compromisso */}
+            {proxEv && (() => {
+              const [titulo, local] = splitDetalhe(proxEv.e.detalhe);
+              return (
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sparta-600 via-sparta-700 to-[#2b060d] p-5 ring-1 ring-sparta-500/40">
+                <div className="stripe-texture absolute inset-0 opacity-40" />
+                <div className="relative flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-extrabold tracking-[0.25em] text-red-100">
+                      PRÓXIMO COMPROMISSO • {proxEv.e.tipo}
                     </p>
+                    <p className="font-display mt-1 truncate text-3xl font-extrabold italic leading-none">{titulo}</p>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-100/90">
+                      <Icon name="calendar" size={14} /> {proxEv.e.dia} de {MESES_NOME[mesIdx(proxEv.e.mes)].toLowerCase()} • {proxEv.e.hora}
+                    </p>
+                    {local && (
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-red-100/90">
+                      <Icon name="pin" size={14} /> <span className="truncate">{local}</span>
+                    </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 rounded-2xl bg-black/30 px-4 py-3 text-center ring-1 ring-white/20">
+                    {proxEv.diff === 0 ? (
+                      <p className="font-display text-3xl font-extrabold italic leading-none">HOJE</p>
+                    ) : (
+                      <>
+                        <p className="font-display text-4xl font-extrabold italic leading-none">{proxEv.diff}</p>
+                        <p className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-red-100/80">{proxEv.diff === 1 ? "DIA" : "DIAS"}</p>
+                      </>
+                    )}
                   </div>
                 </div>
-              ))}
-              {site.eventos.length === 0 && (
-                <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10">
-                  Nenhum evento — crie no painel ADM.
-                </p>
-              )}
+                <button onClick={() => irPara(proxEv.e)} className="press relative mt-3 w-full rounded-xl bg-black/30 py-2.5 text-xs font-extrabold tracking-wider ring-1 ring-white/20">
+                  VER NO CALENDÁRIO
+                </button>
+              </div>
+              );
+            })()}
+
+            <div className="md:grid md:grid-cols-[380px_1fr] md:items-start md:gap-3">
+              {/* calendário real */}
+              <div className="card-shadow overflow-hidden rounded-3xl bg-white text-zinc-900">
+                <div className="flex items-center justify-between px-3 py-3">
+                  <button onClick={() => mudaMes(-1)} aria-label="Mês anterior" className="press rounded-lg p-2 text-zinc-400 hover:bg-zinc-100">
+                    <Icon name="back" size={18} />
+                  </button>
+                  <div className="text-center">
+                    <p className="font-display text-xl font-extrabold italic leading-none tracking-widest">
+                      {MESES_NOME[calMes].toUpperCase()} {calAno}
+                    </p>
+                    {!(ehMesAtual) && (
+                      <button onClick={() => { setCalAno(hojeD.getFullYear()); setCalMes(hojeD.getMonth()); setDiaSel(hojeD.getDate()); }} className="mt-0.5 text-[10px] font-extrabold tracking-widest text-sparta-600">
+                        VOLTAR A HOJE
+                      </button>
+                    )}
+                  </div>
+                  <button onClick={() => mudaMes(1)} aria-label="Próximo mês" className="press rounded-lg p-2 text-zinc-400 hover:bg-zinc-100">
+                    <Icon name="chevron" size={18} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 gap-1 px-4 text-center text-[10px] font-extrabold text-zinc-400">
+                  {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+                    <span key={i}>{d}</span>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1 p-4 pt-2 text-center">
+                  {cells.map((c, i) => {
+                    const evs = c.fora ? [] : porDia.get(c.dia) ?? [];
+                    const temJogo = evs.some((e) => e.tipo === "JOGO");
+                    const sel = !c.fora && c.dia === dia;
+                    const ehHoje = ehMesAtual && !c.fora && c.dia === hojeD.getDate();
+                    return (
+                      <button
+                        key={i}
+                        disabled={c.fora}
+                        onClick={() => { setDiaSel(c.dia); setEvAberto(null); }}
+                        className={`press flex flex-col items-center rounded-full py-1.5 text-[13px] font-semibold ${
+                          c.fora ? "text-zinc-300" : sel ? "bg-sparta-600 font-extrabold text-white shadow" : ehHoje ? "font-extrabold text-sparta-600 ring-1 ring-sparta-600" : "text-zinc-800"
+                        }`}
+                      >
+                        {c.dia}
+                        <span className="flex h-1.5 gap-0.5">
+                          {evs.slice(0, 3).map((e) => (
+                            <span key={e.id} className={`h-1 w-1 rounded-full ${e.tipo === "JOGO" ? "bg-red-500" : "bg-zinc-400"}`} style={sel ? { backgroundColor: "#fff" } : undefined} />
+                          ))}
+                          {temJogo && evs.length === 0 && null}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-4 border-t border-zinc-100 px-4 py-2.5 text-[10px] font-bold text-zinc-500">
+                  <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Jogo</span>
+                  <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-zinc-400" /> Treino</span>
+                </div>
+              </div>
+
+              {/* eventos do dia */}
+              <div className="mt-3 md:mt-0">
+                <div className="flex items-center justify-between">
+                  <SectionHead title={dia > 0 ? `DIA ${dia} • ${MESES_PT[calMes]}` : "EVENTOS"} />
+                  <div className="flex gap-1.5">
+                    {(["TODOS", "JOGO", "TREINO"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFiltroEv(f)}
+                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-extrabold tracking-wider ${filtroEv === f ? "bg-sparta-600 text-white" : "bg-[#151517] text-zinc-500 ring-1 ring-white/10"}`}
+                      >
+                        {f === "TODOS" ? "TODOS" : f === "JOGO" ? "JOGOS" : "TREINOS"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-2 space-y-2.5">
+                  {evsDia.map((e) => {
+                    const [titulo, local] = splitDetalhe(e.detalhe);
+                    const diff = diasAte(dataEvento(e, calAno));
+                    const aberto = evAberto === e.id;
+                    return (
+                      <div key={e.id} className="overflow-hidden rounded-2xl bg-[#151517] ring-1 ring-white/10">
+                        <button onClick={() => setEvAberto(aberto ? null : e.id)} className="press flex w-full items-center gap-3 p-3.5 text-left">
+                          <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-white/[0.06] py-2">
+                            <span className="font-display text-2xl font-extrabold italic leading-none text-sparta-400">{e.dia}</span>
+                            <span className="text-[9px] font-extrabold tracking-widest text-zinc-400">{e.mes}</span>
+                            <span className="mt-1 text-[10px] font-bold text-zinc-300">{e.hora}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-extrabold tracking-wider ${e.tipo === "JOGO" ? "bg-sparta-600 text-white" : "bg-white/10 text-zinc-300"}`}>
+                                {e.tipo}
+                              </span>
+                              <p className="truncate text-[13px] font-bold">{titulo}</p>
+                            </div>
+                            {local && (
+                            <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-zinc-400">
+                              <Icon name="pin" size={13} className="shrink-0" /> {local}
+                            </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold ${chipCount(diff)}`}>
+                              {textoCountdown(diff)}
+                            </span>
+                            <Icon name="chevron" size={16} className={`text-zinc-600 transition ${aberto ? "rotate-90" : ""}`} />
+                          </div>
+                        </button>
+                        {aberto && (
+                          <div className="space-y-2 border-t border-white/10 px-4 py-3 text-[13px]">
+                            <p className="flex items-center gap-2 text-zinc-300">
+                              <Icon name="calendar" size={15} className="shrink-0 text-sparta-400" />
+                              {e.dia} de {MESES_NOME[mesIdx(e.mes)].toLowerCase()} de {calAno} • {e.hora}
+                            </p>
+                            {local && (
+                            <p className="flex items-center gap-2 text-zinc-300">
+                              <Icon name="pin" size={15} className="shrink-0 text-sparta-400" /> {local}
+                            </p>
+                            )}
+                            <a
+                              href={`https://wa.me/?text=${encodeURIComponent(`${e.tipo === "JOGO" ? "JOGO" : "TREINO"} ${nomeClube}: ${titulo} — ${e.dia}/${e.mes} às ${e.hora}${local ? ` • ${local}` : ""}`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="press flex items-center justify-center gap-2 rounded-xl bg-green-700 py-2.5 text-xs font-extrabold tracking-wide"
+                            >
+                              COMPARTILHAR NO WHATSAPP
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {evsDia.length === 0 && (
+                    <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10">
+                      Nenhum evento neste dia — toque num dia marcado no calendário.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* próximos compromissos */}
+            {futuros.length > 1 && (
+              <div>
+                <SectionHead title="PRÓXIMOS COMPROMISSOS" />
+                <div className="mt-2 space-y-2 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
+                  {futuros.slice(1, 5).map(({ e, diff }) => {
+                    const [titulo] = splitDetalhe(e.detalhe);
+                    return (
+                      <button key={e.id} onClick={() => irPara(e)} className="press flex w-full items-center gap-3 rounded-2xl bg-[#151517] p-3 text-left ring-1 ring-white/10">
+                        <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-white/[0.06] py-1.5">
+                          <span className="font-display text-lg font-extrabold italic leading-none">{e.dia}</span>
+                          <span className="text-[8px] font-extrabold tracking-widest text-zinc-400">{e.mes}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-bold">{titulo}</p>
+                          <p className="text-[11px] text-zinc-500">{e.hora} • {e.tipo}</p>
+                        </div>
+                        <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-extrabold ${chipCount(diff)}`}>
+                          {textoCountdown(diff)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {site.eventos.length === 0 && (
+              <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10">
+                Nenhum evento — crie no painel ADM.
+              </p>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {route === "jogos" && (() => {
           const tabela = [...site.classificacao]
