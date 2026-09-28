@@ -1,21 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Leitura pública (o app é aberto). Escrita só de quem está
-    // logado no painel ADM (Firebase Authentication).
+    // Leitura pública (o app é aberto). Escrita SÓ do admin do clube
+    // (UID cadastrado no Authentication — troque se mudar de conta).
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == "ljH20fBEtIW8UkVb5xyrX7QLtLf2";
+    }
     match /spartax/site {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
 
       // Fotos e notícias (cada item é um doc — sem limite de 1 MB,
       // funciona no plano gratuito sem Storage pago).
       match /galeria/{id} {
         allow read: if true;
-        allow write: if request.auth != null;
+        allow write: if isAdmin();
       }
       match /noticias/{id} {
         allow read: if true;
-        allow write: if request.auth != null;
+        allow write: if isAdmin();
       }
     }
   }

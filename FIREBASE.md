@@ -29,7 +29,7 @@ Sem isso, o painel ADM nega a gravação.
 1. Menu **Authentication** → **Começar** → aba **Sign-in method** → **E-mail/senha** → **Ativar** → **Salvar**.
 2. Aba **Users** → **Adicionar usuário** → e-mail + senha da diretoria (ex: `diretoria@spartax.com.br`).
 3. No app: menu → **Administração** → entre com esse e-mail/senha. A sessão fica salva no aparelho; pra sair use a aba **Acesso** → **Sair**.
-4. Republique o `firestore.rules` (escrita exige `request.auth != null`).
+4. Republique o `firestore.rules` (escrita restrita ao UID do admin — ver o UID em Authentication → Users, coluna ao lado do e-mail).
 
 ## 5. Conectar o app
 
