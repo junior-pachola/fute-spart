@@ -7,20 +7,29 @@ import { processImageFile, processImageFiles } from "../store/image";
 
 type Aba = "geral" | "escudo" | "atletas" | "agenda" | "jogos" | "noticias" | "galeria" | "parceiros" | "captacao" | "documentos" | "avisos" | "pin";
 
-const ABAS: { id: Aba; label: string }[] = [
-  { id: "geral", label: "Geral" },
-  { id: "escudo", label: "Escudo" },
-  { id: "atletas", label: "Atletas" },
-  { id: "agenda", label: "Eventos" },
-  { id: "jogos", label: "Jogos" },
-  { id: "noticias", label: "Notícias" },
-  { id: "galeria", label: "Galeria" },
-  { id: "parceiros", label: "Parceiros" },
-  { id: "captacao", label: "Captação" },
-  { id: "documentos", label: "Documentos" },
-  { id: "avisos", label: "Avisos" },
-  { id: "pin", label: "Acesso" },
+type AbaMeta = {
+  id: Exclude<Aba, "geral">;
+  label: string;
+  desc: string;
+  icon: Parameters<typeof Icon>[0]["name"];
+  grupo: string;
+};
+
+const MENU_ADM: AbaMeta[] = [
+  { id: "escudo", label: "Escudo e capa", desc: "Símbolo + fundo da home", icon: "shield", grupo: "EQUIPE" },
+  { id: "atletas", label: "Atletas", desc: "Elenco, fotos e estatísticas", icon: "users", grupo: "EQUIPE" },
+  { id: "agenda", label: "Eventos", desc: "Jogos e treinos do calendário", icon: "calendar", grupo: "FUTEBOL" },
+  { id: "jogos", label: "Jogos", desc: "Confronto, banner e tabela", icon: "trophy", grupo: "FUTEBOL" },
+  { id: "noticias", label: "Notícias", desc: "Publicações do clube", icon: "news", grupo: "FUTEBOL" },
+  { id: "galeria", label: "Galeria", desc: "Fotos e vídeos", icon: "gallery", grupo: "FUTEBOL" },
+  { id: "parceiros", label: "Parceiros", desc: "Patrocinadores e apoiadores", icon: "handshake", grupo: "CLUBE" },
+  { id: "captacao", label: "Captação", desc: "Valores do projeto", icon: "chart", grupo: "CLUBE" },
+  { id: "documentos", label: "Documentos", desc: "Transparência oficial", icon: "folder", grupo: "CLUBE" },
+  { id: "avisos", label: "Avisos", desc: "Notificações push do app", icon: "bell", grupo: "SISTEMA" },
+  { id: "pin", label: "Acesso", desc: "Conta, senha e saída", icon: "gear", grupo: "SISTEMA" },
 ];
+
+const GRUPOS_ADM = ["EQUIPE", "FUTEBOL", "CLUBE", "SISTEMA"];
 
 function Field(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -240,19 +249,15 @@ export default function Admin({ onExit }: { onExit: () => void }) {
 
   const naoLidos = site.notificacoes.filter((n) => !n.lida).length;
 
-  const atalhos: { aba: Exclude<Aba, "geral">; titulo: string; desc: string; badge?: string }[] = [
-    { aba: "escudo", titulo: "Escudo e capa", desc: "Símbolo + fundo da home" },
-    { aba: "atletas", titulo: "Atletas", desc: "Elenco oficial", badge: String(site.atletas.length) },
-    { aba: "agenda", titulo: "Eventos", desc: "Jogos e treinos", badge: String(site.eventos.length) },
-    { aba: "jogos", titulo: "Jogos", desc: "Próximo + resultado" },
-    { aba: "noticias", titulo: "Notícias", desc: "Publicar novidades", badge: String(site.noticias.length) },
-    { aba: "galeria", titulo: "Galeria", desc: "Fotos e vídeos", badge: String(site.galeria.length) },
-    { aba: "parceiros", titulo: "Parceiros", desc: "Patrocinadores", badge: String(site.parceiros.length) },
-    { aba: "captacao", titulo: "Captação", desc: "Valores do projeto" },
-    { aba: "documentos", titulo: "Documentos", desc: "Transparência", badge: String(site.documentos.length) },
-    { aba: "avisos", titulo: "Avisos", desc: "Notificações push", badge: naoLidos > 0 ? `${naoLidos} novos` : undefined },
-    { aba: "pin", titulo: "PIN", desc: "Código de acesso" },
-  ];
+  const contagem: Record<string, string | undefined> = {
+    atletas: String(site.atletas.length),
+    agenda: String(site.eventos.length),
+    noticias: String(site.noticias.length),
+    galeria: String(site.galeria.length),
+    parceiros: String(site.parceiros.length),
+    documentos: String(site.documentos.length),
+    avisos: naoLidos > 0 ? `${naoLidos} novos` : undefined,
+  };
 
   async function importarGaleria(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -284,53 +289,110 @@ export default function Admin({ onExit }: { onExit: () => void }) {
         </button>
       </div>
 
-      <div className="no-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
-        {ABAS.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setAba(a.id)}
-            className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-extrabold tracking-wide ${aba === a.id ? "bg-red-600 text-white" : "bg-[#151517] text-zinc-400 ring-1 ring-white/10"}`}
-          >
-            {a.label.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
       <div className="mt-3 space-y-3 pb-4">
+        {aba !== "geral" &&
+          (() => {
+            const meta = MENU_ADM.find((m) => m.id === aba);
+            if (!meta) return null;
+            const badge =
+              aba === "atletas" ? String(site.atletas.length)
+              : aba === "agenda" ? String(site.eventos.length)
+              : aba === "noticias" ? String(site.noticias.length)
+              : aba === "galeria" ? String(site.galeria.length)
+              : aba === "parceiros" ? String(site.parceiros.length)
+              : aba === "documentos" ? String(site.documentos.length)
+              : aba === "avisos" && naoLidos > 0 ? `${naoLidos} novos`
+              : undefined;
+            return (
+              <div className="flex items-center gap-3 rounded-2xl bg-[#151517] p-3 ring-1 ring-white/10">
+                <button
+                  onClick={() => setAba("geral")}
+                  aria-label="Voltar ao painel"
+                  className="press flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-zinc-300"
+                >
+                  <Icon name="back" size={20} />
+                </button>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600/15 text-red-400">
+                  <Icon name={meta.icon} size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-xl font-bold italic leading-none">{meta.label}</p>
+                  <p className="truncate text-[11px] text-zinc-500">{meta.desc}</p>
+                </div>
+                {badge && (
+                  <span className="shrink-0 rounded-lg bg-red-600/20 px-2 py-1 text-[11px] font-extrabold text-red-300">
+                    {badge}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         {aba === "geral" && (
           <>
-            <Sec title="Atalhos rápidos" sub="Toque para ir direto à área que quer mexer.">
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                {atalhos.map((a) => (
-                  <button
-                    key={a.aba}
-                    onClick={() => setAba(a.aba)}
-                    className="press flex items-center gap-2.5 rounded-xl bg-black/30 p-3 text-left ring-1 ring-white/10"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[13px] font-bold">
-                        {a.titulo}
-                        {a.badge && (
-                          <span className="rounded-md bg-red-600/20 px-1.5 py-0.5 text-[10px] font-extrabold text-red-300">
-                            {a.badge}
-                          </span>
-                        )}
-                      </span>
-                      <span className="block truncate text-[11px] text-zinc-500">{a.desc}</span>
-                    </span>
-                    <Icon name="chevron" size={16} className="shrink-0 text-zinc-600" />
-                  </button>
+            <Sec title="Resumo do clube" sub={site.cloud ? "Sincronizando com a nuvem Firebase." : "Modo local — conecte o Firebase para sincronizar."}>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                {[
+                  [String(site.atletas.length), "ATLETAS"],
+                  [String(site.eventos.length), "EVENTOS"],
+                  [String(site.noticias.length), "NOTÍCIAS"],
+                  [String(site.galeria.length), "MÍDIAS"],
+                ].map(([n, l]) => (
+                  <div key={l} className="rounded-xl bg-black/30 p-3 ring-1 ring-white/10">
+                    <p className="font-display text-2xl font-extrabold italic leading-none">{n}</p>
+                    <p className="mt-1 text-[9px] font-bold tracking-widest text-zinc-500">{l}</p>
+                  </div>
                 ))}
               </div>
             </Sec>
-            <Sec title="Zona de segurança" sub="Cuidado: apaga tudo que foi personalizado.">
-              <button
-                onClick={() => { if (confirm("Restaurar todo o conteúdo padrão?")) site.reset(); }}
-                className="press w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold text-zinc-400 ring-1 ring-white/10"
-              >
-                Restaurar conteúdo padrão
-              </button>
-            </Sec>
+            {GRUPOS_ADM.map((g) => (
+              <div key={g}>
+                <p className="px-1 text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">{g === "FUTEBOL" ? "COMPETIÇÃO" : g}</p>
+                <div className="mt-1.5 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {MENU_ADM.filter((m) => m.grupo === g).map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setAba(m.id)}
+                      className="press flex items-center gap-3 rounded-2xl bg-[#151517] p-3.5 text-left ring-1 ring-white/10"
+                    >
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600/15 text-red-400">
+                        <Icon name={m.icon} size={21} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 text-[14px] font-bold">
+                          {m.label}
+                          {contagem[m.id] && (
+                            <span className="rounded-md bg-red-600/20 px-1.5 py-0.5 text-[10px] font-extrabold text-red-300">
+                              {contagem[m.id]}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block truncate text-[11px] text-zinc-500">
+                          {m.id === "pin" && !site.cloud ? "PIN de acesso" : m.desc}
+                        </span>
+                      </span>
+                      <Icon name="chevron" size={17} className="shrink-0 text-zinc-600" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <details className="rounded-2xl bg-[#151517] ring-1 ring-white/10">
+              <summary className="cursor-pointer list-none p-4 text-sm font-bold text-zinc-400 [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between">
+                  Zona de segurança
+                  <Icon name="chevron" size={16} className="text-zinc-600" />
+                </span>
+              </summary>
+              <div className="px-4 pb-4">
+                <p className="mb-2 text-[11px] text-zinc-500">Restaurar apaga tudo que foi personalizado e volta ao padrão.</p>
+                <button
+                  onClick={() => { if (confirm("Restaurar todo o conteúdo padrão?")) site.reset(); }}
+                  className="press w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold text-zinc-400 ring-1 ring-white/10"
+                >
+                  Restaurar conteúdo padrão
+                </button>
+              </div>
+            </details>
           </>
         )}
 
