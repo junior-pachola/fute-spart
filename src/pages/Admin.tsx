@@ -7,6 +7,8 @@ import { processImageFile, processImageFiles } from "../store/image";
 
 type Aba = "geral" | "escudo" | "atletas" | "agenda" | "jogos" | "noticias" | "galeria" | "parceiros" | "captacao" | "documentos" | "avisos" | "pin";
 
+export type { Aba };
+
 type AbaMeta = {
   id: Exclude<Aba, "geral">;
   label: string;
@@ -30,6 +32,8 @@ const MENU_ADM: AbaMeta[] = [
 ];
 
 const GRUPOS_ADM = ["EQUIPE", "FUTEBOL", "CLUBE", "SISTEMA"];
+
+export { GRUPOS_ADM, MENU_ADM };
 
 function Field(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -229,10 +233,9 @@ function ImageField({ label, hint, value, onChange }: { label: string; hint?: st
   );
 }
 
-export default function Admin({ onExit }: { onExit: () => void }) {
+export default function Admin({ onExit, aba, setAba }: { onExit: () => void; aba: Aba; setAba: (a: Aba) => void }) {
   const site = useSite();
   const auth = useAuth();
-  const [aba, setAba] = useState<Aba>("geral");
 
   // forms locais
   const [fAtleta, setFAtleta] = useState({ nome: "", posicao: "", nasc: "", numero: "" });

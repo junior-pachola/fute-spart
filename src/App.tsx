@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon, Shield } from "./components/brand";
-import Admin from "./pages/Admin";
+import Admin, { GRUPOS_ADM, MENU_ADM, type Aba as AbaAdm } from "./pages/Admin";
 import { useSite } from "./store/site";
 import { authErroPt, useAuth } from "./store/auth";
 import type { Route as MockRoute } from "./data/mock";
@@ -97,10 +97,15 @@ function Crest({ size }: { size: number }) {
 }
 
 /** Porta do ADM: login Firebase (nuvem) ou PIN (modo local). */
-function AdmArea({ onExit }: { onExit: () => void }) {
+function AdmArea({ onExit, pinOk, setPinOk, adminAba, setAdminAba }: {
+  onExit: () => void;
+  pinOk: boolean;
+  setPinOk: (v: boolean) => void;
+  adminAba: AbaAdm;
+  setAdminAba: (a: AbaAdm) => void;
+}) {
   const site = useSite();
   const auth = useAuth();
-  const [pinOk, setPinOk] = useState(false);
   const [pin, setPin] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -125,7 +130,7 @@ function AdmArea({ onExit }: { onExit: () => void }) {
 
   // Sem Firebase: trava local por PIN
   if (!site.cloud) {
-    if (pinOk) return <Admin onExit={onExit} />;
+    if (pinOk) return <Admin onExit={onExit} aba={adminAba} setAba={setAdminAba} />;
     return (
       <div className="p-4">
         <div className="carbon-texture rounded-3xl bg-[#151517] p-6 text-center ring-1 ring-gold-500/30">
@@ -210,11 +215,14 @@ function AdmArea({ onExit }: { onExit: () => void }) {
     );
   }
 
-  return <Admin onExit={onExit} />;
+  return <Admin onExit={onExit} aba={adminAba} setAba={setAdminAba} />;
 }
 
 export default function App() {
   const site = useSite();
+  const auth = useAuth();
+  const [pinOk, setPinOk] = useState(false);
+  const [adminAba, setAdminAba] = useState<AbaAdm>("geral");
   const [route, setRoute] = useState<Route>("inicio");
   const [drawer, setDrawer] = useState(false);
   const [splash, setSplash] = useState(true);
@@ -257,6 +265,16 @@ export default function App() {
     setDrawer(false);
     setAtletaSel(null);
   }
+
+  function goAdm(a: AbaAdm) {
+    setAdminAba(a);
+    setRoute("adm");
+    setDrawer(false);
+    setAtletaSel(null);
+  }
+
+  /** Logado no painel? Aí o menu lateral vira o menu do ADM. */
+  const admAtivo = route === "adm" && (site.cloud ? auth.user != null : pinOk);
 
   function marcarLida(id: string) {
     site.update({ notificacoes: site.notificacoes.map((n) => (n.id === id ? { ...n, lida: true } : n)) });
@@ -334,14 +352,62 @@ export default function App() {
                 <div className="relative flex items-center gap-3 p-5 pb-6">
                   <Crest size={56} />
                   <div>
-                    <p className="font-display text-2xl font-extrabold italic leading-none">{nomeClube}</p>
-                    <p className="text-[10px] font-bold tracking-[0.25em] text-zinc-300">ASSOCIAÇÃO DESPORTIVA</p>
+                    <p className="font-display text-2xl font-extrabold italic leading-none">{admAtivo ? "PAINEL ADM" : nomeClube}</p>
+                    <p className="text-[10px] font-bold tracking-[0.25em] text-zinc-300">{admAtivo ? "GERENCIAR CLUBE" : "ASSOCIAÇÃO DESPORTIVA"}</p>
+                    {!admAtivo && (
                     <p className="mt-1.5 w-fit rounded-full bg-gold-500/15 px-2.5 py-0.5 text-[10px] font-bold text-gold-400 ring-1 ring-gold-500/40">
                       SÓCIO TORCEDOR • 2026
                     </p>
+                    )}
                   </div>
                 </div>
               </div>
+              {admAtivo ? (
+              <>
+              <button
+                onClick={() => go("inicio")}
+                className="press mx-2 mt-2 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-left text-[13px] font-bold text-zinc-300 ring-1 ring-white/10"
+              >
+                <Icon name="back" size={18} /> Voltar ao app
+              </button>
+              <nav className="flex-1 overflow-y-auto px-2 py-2">
+                {GRUPOS_ADM.map((g) => (
+                  <div key={g} className="mt-1">
+                    <p className="px-3 pb-1 pt-3 text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">{g === "FUTEBOL" ? "COMPETIÇÃO" : g}</p>
+                    {MENU_ADM.filter((m) => m.grupo === g).map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => goAdm(m.id)}
+                        className={`press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] ${
+                          adminAba === m.id ? "bg-gold-500/15 font-bold text-white" : "text-zinc-300"
+                        }`}
+                      >
+                        <span className={adminAba === m.id ? "text-gold-400" : "text-zinc-500"}>
+                          <Icon name={m.icon} size={20} />
+                        </span>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </nav>
+              <div className="border-t border-white/10 p-4">
+                {site.cloud ? (
+                  <button
+                    onClick={() => { void auth.logout().then(() => go("inicio")); }}
+                    className="press w-full rounded-xl bg-red-600/15 py-2.5 text-xs font-extrabold text-red-300 ring-1 ring-red-600/30"
+                  >
+                    SAIR DO PAINEL
+                  </button>
+                ) : (
+                  <p className="font-display text-center text-lg font-bold italic tracking-wide">
+                    SOMOS TODOS <span className="text-sparta-400">{nomeClube}</span>
+                  </p>
+                )}
+              </div>
+              </>
+              ) : (
+              <>
               <nav className="flex-1 overflow-y-auto px-2 pb-2">
                 {(["CLUBE", "APOIO", "SUPORTE"] as const).map((g) => (
                   <div key={g} className="mt-1">
@@ -365,7 +431,7 @@ export default function App() {
                         )}
                         {m.id === "adm" && (
                           <span className="ml-auto rounded-md bg-gold-500/15 px-2 py-0.5 text-[10px] font-extrabold text-gold-400 ring-1 ring-gold-500/40">
-                            PIN
+                            {site.cloud ? "LOGIN" : "PIN"}
                           </span>
                         )}
                       </button>
@@ -379,6 +445,8 @@ export default function App() {
                 </p>
                 <p className="mt-0.5 text-center text-[10px] tracking-[0.2em] text-zinc-500">v1.0 • WEB + MOBILE</p>
               </div>
+              </>
+              )}
             </div>
           </aside>
         </div>
@@ -390,10 +458,56 @@ export default function App() {
           <div className="flex items-center gap-3 border-b border-white/10 p-5">
             <Crest size={48} />
             <div>
-              <p className="font-display text-xl font-extrabold italic leading-none">{nomeClube}</p>
-              <p className="text-[9px] font-bold tracking-[0.25em] text-zinc-400">ASSOCIAÇÃO DESPORTIVA</p>
+              <p className="font-display text-xl font-extrabold italic leading-none">{admAtivo ? "PAINEL ADM" : nomeClube}</p>
+              <p className="text-[9px] font-bold tracking-[0.25em] text-zinc-400">{admAtivo ? "GERENCIAR CLUBE" : "ASSOCIAÇÃO DESPORTIVA"}</p>
             </div>
           </div>
+          {admAtivo ? (
+            <>
+              <button
+                onClick={() => go("inicio")}
+                className="press mx-2 mt-2 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-left text-[13px] font-bold text-zinc-300 ring-1 ring-white/10"
+              >
+                <Icon name="back" size={18} /> Voltar ao app
+              </button>
+              <nav className="flex-1 overflow-y-auto px-2 py-2">
+                {GRUPOS_ADM.map((g) => (
+                  <div key={g} className="mt-1">
+                    <p className="px-3 pb-1 pt-3 text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">{g === "FUTEBOL" ? "COMPETIÇÃO" : g}</p>
+                    {MENU_ADM.filter((m) => m.grupo === g).map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => goAdm(m.id)}
+                        className={`press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] ${
+                          adminAba === m.id ? "bg-gold-500/15 font-bold text-white" : "text-zinc-300"
+                        }`}
+                      >
+                        <span className={adminAba === m.id ? "text-gold-400" : "text-zinc-500"}>
+                          <Icon name={m.icon} size={20} />
+                        </span>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </nav>
+              <div className="border-t border-white/10 p-4">
+                {site.cloud ? (
+                  <button
+                    onClick={() => { void auth.logout().then(() => go("inicio")); }}
+                    className="press w-full rounded-xl bg-red-600/15 py-2.5 text-xs font-extrabold text-red-300 ring-1 ring-red-600/30"
+                  >
+                    SAIR DO PAINEL
+                  </button>
+                ) : (
+                  <p className="font-display text-center text-base font-bold italic tracking-wide">
+                    SOMOS TODOS <span className="text-sparta-400">{nomeClube}</span>
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+          <>
           <nav className="flex-1 overflow-y-auto px-2 py-2">
             {(["CLUBE", "APOIO", "SUPORTE"] as const).map((g) => (
               <div key={g} className="mt-1">
@@ -417,7 +531,7 @@ export default function App() {
                     )}
                     {m.id === "adm" && (
                       <span className="ml-auto rounded-md bg-gold-500/15 px-2 py-0.5 text-[10px] font-extrabold text-gold-400 ring-1 ring-gold-500/40">
-                        PIN
+                        {site.cloud ? "LOGIN" : "PIN"}
                       </span>
                     )}
                   </button>
@@ -430,11 +544,13 @@ export default function App() {
               SOMOS TODOS <span className="text-sparta-400">{nomeClube}</span>
             </p>
           </div>
+          </>
+          )}
         </aside>
 
         <div className="min-w-0 flex-1">
       <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-6xl md:[&>div]:px-8">
-        {route === "adm" && <AdmArea onExit={() => go("inicio")} />}
+        {route === "adm" && <AdmArea onExit={() => go("inicio")} pinOk={pinOk} setPinOk={setPinOk} adminAba={adminAba} setAdminAba={setAdminAba} />}
 
         {route === "inicio" && (
           <div>
