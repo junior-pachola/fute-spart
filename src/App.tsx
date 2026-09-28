@@ -38,6 +38,29 @@ const TITULOS: Record<Route, { titulo: string; sub: string }> = {
   adm: { titulo: "ADM", sub: "PAINEL DO CLUBE" },
 };
 
+function idadeDe(nasc: string): string {
+  const m = nasc.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return "—";
+  const nd = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nd.getFullYear();
+  if (hoje.getMonth() < nd.getMonth() || (hoje.getMonth() === nd.getMonth() && hoje.getDate() < nd.getDate())) idade--;
+  return `${idade} anos`;
+}
+
+function setorDe(posicao: string): "GOL" | "DEF" | "MEI" | "ATA" | "—" {
+  const p = posicao.toLowerCase();
+  if (/goleiro/.test(p)) return "GOL";
+  if (/zagueiro|lateral/.test(p)) return "DEF";
+  if (/volante|meia/.test(p)) return "MEI";
+  if (/atacante|ponta|centroavante/.test(p)) return "ATA";
+  return "—";
+}
+
+function iniciais(nome: string): string {
+  return nome.split(" ").map((p) => p[0]).slice(0, 2).join("");
+}
+
 function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-center justify-between">
@@ -78,6 +101,9 @@ export default function App() {
   const [drawer, setDrawer] = useState(false);
   const [splash, setSplash] = useState(true);
   const [busca, setBusca] = useState("");
+  const [atletaSel, setAtletaSel] = useState<string | null>(null);
+  const [filtroSetor, setFiltroSetor] = useState<"TODOS" | "GOL" | "DEF" | "MEI" | "ATA">("TODOS");
+  const [ordem, setOrdem] = useState<"numero" | "gols">("numero");
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
   const [admAuth, setAdmAuth] = useState(false);
   const [pinInput, setPinInput] = useState("");
@@ -87,9 +113,15 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  const lista = useMemo(
-    () => site.atletas.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase())),
-    [site.atletas, busca]
+  const lista = useMemo(() => {
+    const q = busca.toLowerCase();
+    return site.atletas
+      .filter((a) => a.nome.toLowerCase().includes(q) && (filtroSetor === "TODOS" || setorDe(a.posicao) === filtroSetor))
+      .sort((x, y) => (ordem === "gols" ? (y.gols ?? 0) - (x.gols ?? 0) : x.numero - y.numero));
+  }, [site.atletas, busca, filtroSetor, ordem]);
+  const artilheiros = useMemo(
+    () => [...site.atletas].sort((x, y) => (y.gols ?? 0) - (x.gols ?? 0)).slice(0, 3),
+    [site.atletas]
   );
   const midias = useMemo(
     () => site.galeria.filter((g) => (aba === "FOTOS" ? g.tipo === "FOTO" : g.tipo === "VIDEO")),
@@ -107,6 +139,7 @@ export default function App() {
   function go(r: Route) {
     setRoute(r);
     setDrawer(false);
+    setAtletaSel(null);
   }
 
   function marcarLida(id: string) {
@@ -476,8 +509,61 @@ export default function App() {
           </div>
         )}
 
-        {route === "atletas" && (
-          <div className="p-4">
+        {route === "atletas" && (() => {
+          const sel = site.atletas.find((a) => a.id === atletaSel);
+          if (sel) {
+            const stats: [string, string, string][] = [
+              ["JOGOS", String(sel.jogos ?? 0), "text-white"],
+              ["GOLS", String(sel.gols ?? 0), "text-gold-400"],
+              ["ASSIST.", String(sel.assistencias ?? 0), "text-white"],
+              ["PARTICIP.", String((sel.gols ?? 0) + (sel.assistencias ?? 0)), "text-white"],
+              ["AMARELOS", String(sel.amarelos ?? 0), "text-amber-400"],
+              ["VERMELHOS", String(sel.vermelhos ?? 0), "text-red-400"],
+            ];
+            return (
+              <div className="p-4 md:p-8">
+                <button onClick={() => setAtletaSel(null)} className="press flex items-center gap-1 text-xs font-extrabold tracking-wider text-zinc-400">
+                  <Icon name="back" size={16} /> VOLTAR AO ELENCO
+                </button>
+                <div className="card-shadow relative mt-3 overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/10">
+                  <div className="stripe-texture absolute inset-0 opacity-40" />
+                  <span className="font-display pointer-events-none absolute -right-2 -top-10 select-none text-[160px] font-extrabold italic leading-none text-white/[0.06]">
+                    {sel.numero}
+                  </span>
+                  <div className="relative flex items-center gap-4 p-5">
+                    {sel.foto ? (
+                      <img src={sel.foto} alt={sel.nome} className="h-20 w-20 shrink-0 rounded-2xl bg-zinc-800 object-cover ring-2 ring-gold-500/60" />
+                    ) : (
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-800 text-2xl font-extrabold ring-1 ring-white/15">
+                        {iniciais(sel.nome)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-md bg-sparta-600 px-2 py-0.5 font-display text-sm font-extrabold italic">#{sel.numero}</span>
+                        <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-extrabold tracking-widest text-zinc-300">{setorDe(sel.posicao)}</span>
+                      </div>
+                      <p className="font-display mt-1.5 truncate text-3xl font-extrabold italic leading-none tracking-wide">{sel.nome}</p>
+                      <p className="mt-1 text-xs text-zinc-400">{sel.posicao} • {idadeDe(sel.nasc)} • Nasc. {sel.nasc}</p>
+                    </div>
+                  </div>
+                  <div className="relative grid grid-cols-3 gap-2 p-4 pt-0">
+                    {stats.map(([l, v, c]) => (
+                      <div key={l} className="rounded-2xl bg-black/30 p-3 text-center ring-1 ring-white/10">
+                        <p className={`font-display text-3xl font-extrabold italic leading-none ${c}`}>{v}</p>
+                        <p className="mt-1 text-[9px] font-bold tracking-[0.2em] text-zinc-500">{l}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="relative border-t border-white/10 px-4 py-2.5 text-center text-[10px] font-bold tracking-[0.25em] text-zinc-500">
+                    TEMPORADA 2026
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return (
+          <div className="p-4 md:p-8">
             <div className="flex items-center gap-2 rounded-2xl bg-[#151517] p-1.5 pl-3 ring-1 ring-white/10">
               <Icon name="search" size={18} className="shrink-0 text-zinc-500" />
               <input
@@ -486,37 +572,78 @@ export default function App() {
                 placeholder="Buscar atleta por nome..."
                 className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-zinc-500"
               />
-              <span className="mr-1 flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-zinc-400">
-                <Icon name="filter" size={17} />
-              </span>
+              <button
+                onClick={() => setOrdem((o) => (o === "numero" ? "gols" : "numero"))}
+                title="Alternar ordenação"
+                className={`press mr-1 flex h-9 shrink-0 items-center gap-1 rounded-xl px-2.5 text-[10px] font-extrabold tracking-wider ${ordem === "gols" ? "bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/40" : "bg-white/5 text-zinc-400"}`}
+              >
+                <Icon name="filter" size={15} /> {ordem === "gols" ? "GOLS" : "Nº"}
+              </button>
             </div>
-            <p className="mt-3 text-[11px] font-bold tracking-[0.2em] text-zinc-500">
+            <div className="no-scrollbar -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+              {(["TODOS", "GOL", "DEF", "MEI", "ATA"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFiltroSetor(f)}
+                  className={`shrink-0 rounded-xl px-4 py-2 text-[11px] font-extrabold tracking-widest ${filtroSetor === f ? "bg-sparta-600 text-white" : "bg-[#151517] text-zinc-500 ring-1 ring-white/10"}`}
+                >
+                  {f === "TODOS" ? "TODOS" : f === "GOL" ? "GOLEIROS" : f === "DEF" ? "DEFESA" : f === "MEI" ? "MEIO" : "ATAQUE"}
+                </button>
+              ))}
+            </div>
+            {busca === "" && filtroSetor === "TODOS" && artilheiros.some((a) => (a.gols ?? 0) > 0) && (
+              <div className="mt-3">
+                <SectionHead title="ARTILHARIA" />
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {artilheiros.map((a, i) => (
+                    <button key={a.id} onClick={() => setAtletaSel(a.id)} className="press carbon-texture rounded-2xl bg-[#151517] p-3 text-center ring-1 ring-white/10">
+                      <span className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${i === 0 ? "bg-gold-500 text-black" : i === 1 ? "bg-zinc-300 text-black" : "bg-amber-700 text-white"}`}>
+                        {i + 1}
+                      </span>
+                      <p className="font-display mt-1.5 truncate text-base font-bold italic leading-tight">{a.nome.split(" ")[0]} {a.nome.split(" ")[1] ?? ""}</p>
+                      <p className="font-display text-2xl font-extrabold italic leading-none text-gold-400">{a.gols ?? 0} <span className="text-xs not-italic text-zinc-500">gols</span></p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="mt-4 text-[11px] font-bold tracking-[0.2em] text-zinc-500">
               {lista.length} ATLETAS • ELENCO OFICIAL
             </p>
             <div className="mt-2 space-y-2 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
               {lista.map((a) => (
-                <div key={a.id} className="press flex items-center gap-3 rounded-2xl bg-[#151517] p-3 ring-1 ring-white/10">
+                <button key={a.id} onClick={() => setAtletaSel(a.id)} className="press flex w-full items-center gap-3 rounded-2xl bg-[#151517] p-3 text-left ring-1 ring-white/10">
                   <div className="flex h-12 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-b from-sparta-500 to-sparta-700">
                     <span className="font-display text-lg font-extrabold italic leading-none text-white">{a.numero}</span>
                   </div>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-sm font-extrabold ring-1 ring-white/15">
-                    {a.nome.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-                  </div>
+                  {a.foto ? (
+                    <img src={a.foto} alt={a.nome} loading="lazy" className="h-11 w-11 shrink-0 rounded-full bg-zinc-800 object-cover ring-1 ring-white/15" />
+                  ) : (
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-sm font-extrabold ring-1 ring-white/15">
+                      {iniciais(a.nome)}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-display truncate text-lg font-bold italic leading-tight tracking-wide">{a.nome}</p>
-                    <p className="truncate text-xs text-zinc-400">{a.posicao} • Nasc. {a.nasc}</p>
+                    <p className="truncate text-xs text-zinc-400">{a.posicao} • {idadeDe(a.nasc)}</p>
                   </div>
+                  {(a.gols ?? 0) > 0 && (
+                    <span className="shrink-0 rounded-lg bg-gold-500/15 px-2 py-1 text-[11px] font-extrabold text-gold-400 ring-1 ring-gold-500/30">
+                      {a.gols} {a.gols === 1 ? "gol" : "gols"}
+                    </span>
+                  )}
                   <Icon name="chevron" size={18} className="shrink-0 text-zinc-600" />
-                </div>
+                </button>
               ))}
               {lista.length === 0 && (
                 <p className="rounded-2xl bg-[#151517] p-8 text-center text-sm text-zinc-500 ring-1 ring-white/10">
-                  Nenhum atleta encontrado para “{busca}”.
+                  Nenhum atleta encontrado.
                 </p>
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {route === "agenda" && (
           <div className="p-4">

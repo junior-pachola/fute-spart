@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from "firebase/firestore";
 import { db, isFirebaseConfigured, SITE_DOC_PATH } from "../lib/firebase";
 import {
-  atletas as atletas0,
   documentos as documentos0,
   eventos as eventos0,
   noticias as noticias0,
@@ -11,7 +10,7 @@ import {
   projeto as projeto0,
 } from "../data/mock";
 
-export interface Atleta { id: string; nome: string; posicao: string; nasc: string; numero: number }
+export interface Atleta { id: string; nome: string; posicao: string; nasc: string; numero: number; foto: string; gols: number; assistencias: number; jogos: number; amarelos: number; vermelhos: number }
 export interface Evento { id: string; dia: string; mes: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
 export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
@@ -47,7 +46,15 @@ export interface SiteState {
 const DEFAULTS: SiteState = {
   escudo: { nome: "SPARTAX", sigla: "SPX", primaria: "#C8102E", secundaria: "#7A0C1E", imagemUrl: "" },
   heroImagem: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=900&auto=format&fit=crop",
-  atletas: atletas0.map((a) => ({ ...a, id: uid() })),
+  atletas: [
+    { nome: "GABRIEL SOUZA", posicao: "Meia Atacante", nasc: "15/03/2011", numero: 10, gols: 7, assistencias: 4, jogos: 7, amarelos: 1, vermelhos: 0 },
+    { nome: "KAUAN LIMA", posicao: "Zagueiro", nasc: "22/01/2011", numero: 4, gols: 1, assistencias: 0, jogos: 7, amarelos: 2, vermelhos: 0 },
+    { nome: "MIGUEL FERREIRA", posicao: "Atacante", nasc: "10/07/2011", numero: 9, gols: 5, assistencias: 2, jogos: 6, amarelos: 0, vermelhos: 0 },
+    { nome: "PEDRO HENRIQUE", posicao: "Lateral Direito", nasc: "05/02/2011", numero: 2, gols: 0, assistencias: 3, jogos: 7, amarelos: 1, vermelhos: 0 },
+    { nome: "LUCAS RIBEIRO", posicao: "Goleiro", nasc: "12/09/2011", numero: 1, gols: 0, assistencias: 0, jogos: 7, amarelos: 0, vermelhos: 0 },
+    { nome: "ENZO GABRIEL", posicao: "Volante", nasc: "03/05/2012", numero: 5, gols: 2, assistencias: 1, jogos: 6, amarelos: 3, vermelhos: 1 },
+    { nome: "MATHEUS SANTOS", posicao: "Ponta Esquerda", nasc: "28/08/2011", numero: 11, gols: 3, assistencias: 5, jogos: 7, amarelos: 0, vermelhos: 0 },
+  ].map((a) => ({ ...a, id: uid(), foto: "" })),
   eventos: eventos0.map((e) => ({ ...e, id: uid() })),
   proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "" },
   ultimoJogo: { id: "j1", casa: "SPX", fora: "GRE", golsCasa: 3, golsFora: 1, data: "18 MAI", local: "Estádio Municipal", gols: [{ minuto: "9'", autor: "Kauan" }, { minuto: "54'", autor: "Miguel" }, { minuto: "78'", autor: "Gabriel" }] },

@@ -48,6 +48,44 @@ function Del({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Botão redondo de foto do atleta (galeria do celular). */
+function FotoBtn({ foto, nome, onChange }: { foto: string; nome: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => ref.current?.click()}
+        disabled={busy}
+        title="Trocar foto"
+        className="press flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-sm font-extrabold ring-1 ring-white/15 disabled:opacity-60"
+      >
+        {foto ? (
+          <img src={foto} alt={nome} className="h-full w-full object-cover" />
+        ) : (
+          nome.split(" ").map((p) => p[0]).slice(0, 2).join("")
+        )}
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          setBusy(true);
+          void processImageFile(f, "atletas")
+            .then(onChange)
+            .catch(() => alert("Não foi possível ler essa foto."))
+            .finally(() => setBusy(false));
+        }}
+      />
+    </>
+  );
+}
+
 /** Prévia + exportação do banner do confronto (1080x1350). */
 function BannerTools() {
   const site = useSite();
@@ -345,21 +383,32 @@ export default function Admin({ onExit }: { onExit: () => void }) {
             <button
               onClick={() => {
                 if (!fAtleta.nome.trim()) return alert("Informe o nome do atleta.");
-                site.update({ atletas: [...site.atletas, { id: uid(), nome: fAtleta.nome.trim(), posicao: fAtleta.posicao || "—", nasc: fAtleta.nasc || "—", numero: Number(fAtleta.numero) || 0 }] });
+                site.update({ atletas: [...site.atletas, { id: uid(), nome: fAtleta.nome.trim(), posicao: fAtleta.posicao || "—", nasc: fAtleta.nasc || "—", numero: Number(fAtleta.numero) || 0, foto: "", gols: 0, assistencias: 0, jogos: 0, amarelos: 0, vermelhos: 0 }] });
                 setFAtleta({ nome: "", posicao: "", nasc: "", numero: "" });
               }}
               className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
             >
               ADICIONAR ATLETA
             </button>
-            {site.atletas.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
-                <input value={a.numero} inputMode="numeric" onChange={(e) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, numero: Number(e.target.value) || 0 } : x)) })} className="w-12 rounded-lg bg-black/50 p-1.5 text-center text-sm font-extrabold outline-none ring-1 ring-white/10" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-bold">{a.nome}</p>
-                  <p className="truncate text-[11px] text-zinc-500">{a.posicao} • {a.nasc}</p>
+            {[...site.atletas].sort((a, b) => a.numero - b.numero).map((a) => (
+              <div key={a.id} className="rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
+                <div className="flex items-center gap-2">
+                  <FotoBtn foto={a.foto ?? ""} nome={a.nome} onChange={(v) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, foto: v } : x)) })} />
+                  <input value={a.numero} inputMode="numeric" title="Número da camisa" onChange={(e) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, numero: Number(e.target.value) || 0 } : x)) })} className="w-12 rounded-lg bg-black/50 p-1.5 text-center text-sm font-extrabold outline-none ring-1 ring-white/10" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold">{a.nome}</p>
+                    <p className="truncate text-[11px] text-zinc-500">{a.posicao} • {a.nasc}</p>
+                  </div>
+                  <Del onClick={() => site.update({ atletas: site.atletas.filter((x) => x.id !== a.id) })} />
                 </div>
-                <Del onClick={() => site.update({ atletas: site.atletas.filter((x) => x.id !== a.id) })} />
+                <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                  {(["jogos", "gols", "assistencias", "amarelos", "vermelhos"] as const).map((k) => (
+                    <label key={k} className="text-center">
+                      <span className="text-[9px] font-extrabold text-zinc-500">{k === "jogos" ? "JOG" : k === "gols" ? "GOL" : k === "assistencias" ? "ASS" : k === "amarelos" ? "AMA" : "VER"}</span>
+                      <input value={a[k] ?? 0} inputMode="numeric" onChange={(e) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, [k]: Number(e.target.value) || 0 } : x)) })} className="w-full rounded-lg bg-black/50 p-1.5 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                    </label>
+                  ))}
+                </div>
               </div>
             ))}
           </Sec>
