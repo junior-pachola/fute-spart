@@ -587,7 +587,7 @@ export default function App() {
         </aside>
 
         <div className="min-w-0 flex-1">
-      <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-6xl md:[&>div]:px-8">
+      <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-7xl md:[&>div]:px-8">
         {route === "adm" && <AdmArea onExit={() => go("inicio")} pinOk={pinOk} setPinOk={setPinOk} adminAba={adminAba} setAdminAba={setAdminAba} />}
 
         {route === "inicio" && (
@@ -944,14 +944,14 @@ export default function App() {
             {proxEv && (() => {
               const [titulo, local] = splitDetalhe(proxEv.e.detalhe);
               return (
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sparta-600 via-sparta-700 to-[#2b060d] p-5 ring-1 ring-sparta-500/40">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sparta-600 via-sparta-700 to-[#2b060d] p-5 ring-1 ring-sparta-500/40 md:p-8">
                 <div className="stripe-texture absolute inset-0 opacity-40" />
                 <div className="relative flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[10px] font-extrabold tracking-[0.25em] text-red-100">
                       PRÓXIMO COMPROMISSO • {proxEv.e.tipo}
                     </p>
-                    <p className="font-display mt-1 truncate text-3xl font-extrabold italic leading-none">{titulo}</p>
+                    <p className="font-display mt-1 truncate text-3xl font-extrabold italic leading-none md:text-4xl">{titulo}</p>
                     <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-100/90">
                       <Icon name="calendar" size={14} /> {proxEv.e.dia} de {MESES_NOME[mesIdx(proxEv.e.mes)].toLowerCase()} • {proxEv.e.hora}
                     </p>
@@ -966,7 +966,7 @@ export default function App() {
                       <p className="font-display text-3xl font-extrabold italic leading-none">HOJE</p>
                     ) : (
                       <>
-                        <p className="font-display text-4xl font-extrabold italic leading-none">{proxEv.diff}</p>
+                        <p className="font-display text-4xl font-extrabold italic leading-none md:text-5xl">{proxEv.diff}</p>
                         <p className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-red-100/80">{proxEv.diff === 1 ? "DIA" : "DIAS"}</p>
                       </>
                     )}
@@ -979,15 +979,15 @@ export default function App() {
               );
             })()}
 
-            <div className="md:grid md:grid-cols-[380px_1fr] md:items-start md:gap-3">
+            <div className="md:grid md:grid-cols-[400px_1fr] md:items-start md:gap-4 lg:grid-cols-[480px_1fr]">
               {/* calendário real */}
               <div className="card-shadow overflow-hidden rounded-3xl bg-white text-zinc-900">
-                <div className="flex items-center justify-between px-3 py-3">
+                <div className="flex items-center justify-between px-3 py-3 md:px-5 md:py-4">
                   <button onClick={() => mudaMes(-1)} aria-label="Mês anterior" className="press rounded-lg p-2 text-zinc-400 hover:bg-zinc-100">
                     <Icon name="back" size={18} />
                   </button>
                   <div className="text-center">
-                    <p className="font-display text-xl font-extrabold italic leading-none tracking-widest">
+                    <p className="font-display text-xl font-extrabold italic leading-none tracking-widest md:text-2xl">
                       {MESES_NOME[calMes].toUpperCase()} {calAno}
                     </p>
                     {!(ehMesAtual) && (
@@ -1000,12 +1000,12 @@ export default function App() {
                     <Icon name="chevron" size={18} />
                   </button>
                 </div>
-                <div className="grid grid-cols-7 gap-1 px-4 text-center text-[10px] font-extrabold text-zinc-400">
+                <div className="grid grid-cols-7 gap-1 px-4 text-center text-[10px] font-extrabold text-zinc-400 md:gap-2 md:px-6 md:text-xs">
                   {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
                     <span key={i}>{d}</span>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1 p-4 pt-2 text-center">
+                <div className="grid grid-cols-7 gap-1 p-4 pt-2 text-center md:gap-2 md:p-6 md:pt-3">
                   {cells.map((c, i) => {
                     const evs = c.fora ? [] : porDia.get(c.dia) ?? [];
                     const temJogo = evs.some((e) => e.tipo === "JOGO");
@@ -1016,7 +1016,7 @@ export default function App() {
                         key={i}
                         disabled={c.fora}
                         onClick={() => { setDiaSel(c.dia); setEvAberto(null); }}
-                        className={`press flex flex-col items-center rounded-full py-1.5 text-[13px] font-semibold ${
+                        className={`press flex flex-col items-center rounded-full py-1.5 text-[13px] font-semibold md:py-2.5 md:text-[15px] ${
                           c.fora ? "text-zinc-300" : sel ? "bg-sparta-600 font-extrabold text-white shadow" : ehHoje ? "font-extrabold text-sparta-600 ring-1 ring-sparta-600" : "text-zinc-800"
                         }`}
                       >
@@ -1060,9 +1060,9 @@ export default function App() {
                     const aberto = evAberto === e.id;
                     return (
                       <div key={e.id} className="overflow-hidden rounded-2xl bg-[#151517] ring-1 ring-white/10">
-                        <button onClick={() => setEvAberto(aberto ? null : e.id)} className="press flex w-full items-center gap-3 p-3.5 text-left">
-                          <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-white/[0.06] py-2">
-                            <span className="font-display text-2xl font-extrabold italic leading-none text-sparta-400">{e.dia}</span>
+                        <button onClick={() => setEvAberto(aberto ? null : e.id)} className="press flex w-full items-center gap-3 p-3.5 text-left md:gap-4 md:p-5">
+                          <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-white/[0.06] py-2 md:w-14 md:py-2.5">
+                            <span className="font-display text-2xl font-extrabold italic leading-none text-sparta-400 md:text-3xl">{e.dia}</span>
                             <span className="text-[9px] font-extrabold tracking-widest text-zinc-400">{e.mes}</span>
                             <span className="mt-1 text-[10px] font-bold text-zinc-300">{e.hora}</span>
                           </div>
@@ -1071,7 +1071,7 @@ export default function App() {
                               <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-extrabold tracking-wider ${e.tipo === "JOGO" ? "bg-sparta-600 text-white" : "bg-white/10 text-zinc-300"}`}>
                                 {e.tipo}
                               </span>
-                              <p className="truncate text-[13px] font-bold">{titulo}</p>
+                              <p className="truncate text-[13px] font-bold md:text-sm">{titulo}</p>
                             </div>
                             {local && (
                             <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-zinc-400">
