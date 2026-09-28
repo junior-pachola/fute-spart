@@ -1,22 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Conteúdo público do clube (leitura aberta p/ o app).
-    // Escrita aberta p/ o painel ADM funcionar sem login.
-    // TODO: quando ativar login, troque `write` por `request.auth != null`.
+    // Leitura pública (o app é aberto). Escrita só de quem está
+    // logado no painel ADM (Firebase Authentication).
     match /spartax/site {
       allow read: if true;
-      allow write: if true;
+      allow write: if request.auth != null;
 
       // Fotos e notícias (cada item é um doc — sem limite de 1 MB,
       // funciona no plano gratuito sem Storage pago).
       match /galeria/{id} {
         allow read: if true;
-        allow write: if true;
+        allow write: if request.auth != null;
       }
       match /noticias/{id} {
         allow read: if true;
-        allow write: if true;
+        allow write: if request.auth != null;
       }
     }
   }

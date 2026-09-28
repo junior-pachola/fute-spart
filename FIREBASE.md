@@ -22,7 +22,16 @@ Firestore. Se um dia assinar o Blaze: menu **Storage** → **Começar** → aba
 **Regras** → cole `storage.rules` → **Publicar**. O app passa a subir as
 fotos pra lá sozinho (com fallback automático se falhar).
 
-## 4. Conectar o app
+## 4. Login da diretoria (obrigatório p/ editar)
+
+Sem isso, o painel ADM nega a gravação.
+
+1. Menu **Authentication** → **Começar** → aba **Sign-in method** → **E-mail/senha** → **Ativar** → **Salvar**.
+2. Aba **Users** → **Adicionar usuário** → e-mail + senha da diretoria (ex: `diretoria@spartax.com.br`).
+3. No app: menu → **Administração** → entre com esse e-mail/senha. A sessão fica salva no aparelho; pra sair use a aba **Acesso** → **Sair**.
+4. Republique o `firestore.rules` (escrita exige `request.auth != null`).
+
+## 5. Conectar o app
 
 1. Console → ⚙️ **Configurações do projeto** → **Seus apps** → `</>` (Web) → apelido `spartax-web` → **Registrar**.
 2. Copie os valores de `firebaseConfig` e crie o arquivo `.env` na raiz (use `.env.example` de modelo):

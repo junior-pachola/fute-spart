@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../components/brand";
 import { downloadBanner, MatchBannerArt, shareBanner } from "../components/MatchBanner";
 import { uid, useSite, type GaleriaItem } from "../store/site";
+import { useAuth } from "../store/auth";
 import { processImageFile, processImageFiles } from "../store/image";
 
 type Aba = "geral" | "escudo" | "atletas" | "agenda" | "jogos" | "noticias" | "galeria" | "parceiros" | "captacao" | "documentos" | "avisos" | "pin";
@@ -18,7 +19,7 @@ const ABAS: { id: Aba; label: string }[] = [
   { id: "captacao", label: "Captação" },
   { id: "documentos", label: "Documentos" },
   { id: "avisos", label: "Avisos" },
-  { id: "pin", label: "PIN" },
+  { id: "pin", label: "Acesso" },
 ];
 
 function Field(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -221,6 +222,7 @@ function ImageField({ label, hint, value, onChange }: { label: string; hint?: st
 
 export default function Admin({ onExit }: { onExit: () => void }) {
   const site = useSite();
+  const auth = useAuth();
   const [aba, setAba] = useState<Aba>("geral");
 
   // forms locais
@@ -232,6 +234,7 @@ export default function Admin({ onExit }: { onExit: () => void }) {
   const [fDoc, setFDoc] = useState({ nome: "" });
   const [fAviso, setFAviso] = useState({ titulo: "" });
   const [fPin, setFPin] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
   const [busyGal, setBusyGal] = useState(false);
   const galRef = useRef<HTMLInputElement>(null);
 
@@ -694,20 +697,47 @@ export default function Admin({ onExit }: { onExit: () => void }) {
         )}
 
         {aba === "pin" && (
-          <Sec title="PIN de acesso" sub="Código para abrir o painel ADM (4 dígitos).">
-            <Field value={fPin} inputMode="numeric" maxLength={4} onChange={(e) => setFPin(e.target.value.replace(/\D/g, ""))} placeholder={`Atual: ${site.pin}`} />
-            <button
-              onClick={() => {
-                if (fPin.length < 4) return alert("PIN precisa de 4 dígitos.");
-                site.update({ pin: fPin });
-                setFPin("");
-                alert("PIN atualizado!");
-              }}
-              className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
-            >
-              TROCAR PIN
-            </button>
-          </Sec>
+          site.cloud ? (
+            <Sec title="Conta da diretoria" sub="Login Firebase — só quem tem conta edita o clube.">
+              <div className="flex items-center gap-3 rounded-xl bg-black/30 p-3 ring-1 ring-white/10">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 text-sm font-extrabold text-gold-400 ring-1 ring-gold-500/40">
+                  {(auth.user?.email ?? "?")[0].toUpperCase()}
+                </span>
+                <p className="min-w-0 flex-1 truncate text-sm font-bold">{auth.user?.email}</p>
+              </div>
+              <Field value={novaSenha} type="password" autoComplete="new-password" onChange={(e) => setNovaSenha(e.target.value)} placeholder="Nova senha (mínimo 6 caracteres)" />
+              <button
+                onClick={() => {
+                  if (novaSenha.length < 6) return alert("Senha precisa de ao menos 6 caracteres.");
+                  void auth.trocarSenha(novaSenha).then(() => { setNovaSenha(""); alert("Senha atualizada!"); }).catch(() => alert("Saia e entre de novo antes de trocar a senha."));
+                }}
+                className="press w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold ring-1 ring-white/10"
+              >
+                TROCAR SENHA
+              </button>
+              <button
+                onClick={() => void auth.logout()}
+                className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
+              >
+                SAIR DO PAINEL
+              </button>
+            </Sec>
+          ) : (
+            <Sec title="PIN de acesso" sub="Código para abrir o painel ADM (4 dígitos).">
+              <Field value={fPin} inputMode="numeric" maxLength={4} onChange={(e) => setFPin(e.target.value.replace(/\D/g, ""))} placeholder={`Atual: ${site.pin}`} />
+              <button
+                onClick={() => {
+                  if (fPin.length < 4) return alert("PIN precisa de 4 dígitos.");
+                  site.update({ pin: fPin });
+                  setFPin("");
+                  alert("PIN atualizado!");
+                }}
+                className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
+              >
+                TROCAR PIN
+              </button>
+            </Sec>
+          )
         )}
       </div>
     </div>

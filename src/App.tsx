@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon, Shield } from "./components/brand";
 import Admin from "./pages/Admin";
 import { useSite } from "./store/site";
+import { authErroPt, useAuth } from "./store/auth";
 import type { Route as MockRoute } from "./data/mock";
 
 type Route = MockRoute | "adm";
@@ -95,6 +96,123 @@ function Crest({ size }: { size: number }) {
   return <Shield size={size} primaria={escudo.primaria} secundaria={escudo.secundaria} nome={escudo.nome} />;
 }
 
+/** Porta do ADM: login Firebase (nuvem) ou PIN (modo local). */
+function AdmArea({ onExit }: { onExit: () => void }) {
+  const site = useSite();
+  const auth = useAuth();
+  const [pinOk, setPinOk] = useState(false);
+  const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function entrar() {
+    if (!email.trim() || !senha) {
+      setErro("Informe e-mail e senha.");
+      return;
+    }
+    setBusy(true);
+    setErro("");
+    try {
+      await auth.login(email, senha);
+    } catch (e) {
+      setErro(authErroPt((e as { code?: string })?.code ?? ""));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Sem Firebase: trava local por PIN
+  if (!site.cloud) {
+    if (pinOk) return <Admin onExit={onExit} />;
+    return (
+      <div className="p-4">
+        <div className="carbon-texture rounded-3xl bg-[#151517] p-6 text-center ring-1 ring-gold-500/30">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/40">
+            <Icon name="shield" size={26} />
+          </span>
+          <p className="font-display mt-3 text-2xl font-extrabold italic">ÁREA RESTRITA</p>
+          <p className="mt-1 text-xs text-zinc-400">Digite o PIN de administração (padrão: 1234).</p>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onKeyDown={(e) => { if (e.key === "Enter" && pin === site.pin) { setPinOk(true); setPin(""); } }}
+            inputMode="numeric"
+            type="password"
+            placeholder="••••"
+            className="mx-auto mt-4 w-40 rounded-2xl bg-black/50 p-3 text-center text-2xl font-extrabold tracking-[0.5em] outline-none ring-1 ring-white/15 placeholder:text-zinc-700 focus:ring-gold-500"
+          />
+          <button
+            onClick={() => {
+              if (pin === site.pin) { setPinOk(true); setPin(""); }
+              else alert("PIN incorreto.");
+            }}
+            className="press mt-3 w-full rounded-2xl bg-gold-500 py-3 text-sm font-extrabold text-black"
+          >
+            DESBLOQUEAR PAINEL
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (auth.loading) {
+    return (
+      <div className="p-4">
+        <div className="rounded-3xl bg-[#151517] p-10 text-center ring-1 ring-white/10">
+          <p className="font-display text-xl font-bold italic tracking-wide">VERIFICANDO SESSÃO...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!auth.user) {
+    return (
+      <div className="p-4">
+        <div className="carbon-texture rounded-3xl bg-[#151517] p-6 ring-1 ring-gold-500/30">
+          <div className="text-center">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/40">
+              <Icon name="shield" size={26} />
+            </span>
+            <p className="font-display mt-3 text-2xl font-extrabold italic">LOGIN DO CLUBE</p>
+            <p className="mt-1 text-xs text-zinc-400">Acesso da diretoria — conta criada no Firebase.</p>
+          </div>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void entrar(); }}
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="email"
+            placeholder="E-mail da diretoria"
+            className="mt-4 w-full rounded-xl bg-black/40 p-3 text-sm outline-none ring-1 ring-white/10 placeholder:text-zinc-600 focus:ring-gold-500"
+          />
+          <input
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void entrar(); }}
+            type="password"
+            autoComplete="current-password"
+            placeholder="Senha"
+            className="mt-2 w-full rounded-xl bg-black/40 p-3 text-sm outline-none ring-1 ring-white/10 placeholder:text-zinc-600 focus:ring-gold-500"
+          />
+          {erro && <p className="mt-2 rounded-xl bg-red-600/15 p-2.5 text-center text-xs font-bold text-red-300 ring-1 ring-red-600/30">{erro}</p>}
+          <button
+            onClick={() => void entrar()}
+            disabled={busy}
+            className="press mt-3 w-full rounded-2xl bg-gold-500 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+          >
+            {busy ? "ENTRANDO..." : "ENTRAR NO PAINEL"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <Admin onExit={onExit} />;
+}
+
 export default function App() {
   const site = useSite();
   const [route, setRoute] = useState<Route>("inicio");
@@ -105,8 +223,6 @@ export default function App() {
   const [filtroSetor, setFiltroSetor] = useState<"TODOS" | "GOL" | "DEF" | "MEI" | "ATA">("TODOS");
   const [ordem, setOrdem] = useState<"numero" | "gols">("numero");
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
-  const [admAuth, setAdmAuth] = useState(false);
-  const [pinInput, setPinInput] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setSplash(false), 2000);
@@ -318,37 +434,7 @@ export default function App() {
 
         <div className="min-w-0 flex-1">
       <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-6xl md:[&>div]:px-8">
-        {route === "adm" && !admAuth && (
-          <div className="p-4">
-            <div className="carbon-texture rounded-3xl bg-[#151517] p-6 text-center ring-1 ring-gold-500/30">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/40">
-                <Icon name="shield" size={26} />
-              </span>
-              <p className="font-display mt-3 text-2xl font-extrabold italic">ÁREA RESTRITA</p>
-              <p className="mt-1 text-xs text-zinc-400">Digite o PIN de administração (padrão: 1234).</p>
-              <input
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                onKeyDown={(e) => { if (e.key === "Enter" && pinInput === site.pin) { setAdmAuth(true); setPinInput(""); } }}
-                inputMode="numeric"
-                type="password"
-                placeholder="••••"
-                className="mx-auto mt-4 w-40 rounded-2xl bg-black/50 p-3 text-center text-2xl font-extrabold tracking-[0.5em] outline-none ring-1 ring-white/15 placeholder:text-zinc-700 focus:ring-gold-500"
-              />
-              <button
-                onClick={() => {
-                  if (pinInput === site.pin) { setAdmAuth(true); setPinInput(""); }
-                  else alert("PIN incorreto.");
-                }}
-                className="press mt-3 w-full rounded-2xl bg-gold-500 py-3 text-sm font-extrabold text-black"
-              >
-                DESBLOQUEAR PAINEL
-              </button>
-            </div>
-          </div>
-        )}
-
-        {route === "adm" && admAuth && <Admin onExit={() => go("inicio")} />}
+        {route === "adm" && <AdmArea onExit={() => go("inicio")} />}
 
         {route === "inicio" && (
           <div>
