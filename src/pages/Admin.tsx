@@ -54,6 +54,22 @@ function Sec({ title, sub, children }: { title: string; sub?: string; children: 
   );
 }
 
+/** Sanfona colapsável — resume a seção numa linha (ideal p/ telas longas). */
+function Fold({ title, resumo, open, children }: { title: string; resumo?: string; open?: boolean; children: React.ReactNode }) {
+  return (
+    <details open={open} className="group rounded-2xl bg-[#151517] ring-1 ring-white/10">
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-lg font-bold italic leading-tight tracking-wide">{title}</p>
+          {resumo && <p className="truncate text-[11px] text-zinc-500">{resumo}</p>}
+        </div>
+        <Icon name="chevron" size={18} className="shrink-0 text-zinc-500 transition-transform group-open:rotate-90" />
+      </summary>
+      <div className="space-y-2 px-4 pb-4">{children}</div>
+    </details>
+  );
+}
+
 function Del({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} className="press rounded-lg bg-red-600/15 px-2.5 py-1.5 text-xs font-bold text-red-400 ring-1 ring-red-600/30">
@@ -553,7 +569,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
 
         {aba === "jogos" && (
           <>
-            <Sec title="Próximo jogo" sub="Card destaque da home.">
+            <Fold title="Próximo jogo" resumo={`${site.proximoJogo.casa} x ${site.proximoJogo.fora} • ${site.proximoJogo.data} ${site.proximoJogo.hora}`} open>
               <Field value={site.proximoJogo.casa} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, casa: e.target.value.toUpperCase() } })} placeholder="Time casa" />
               <Field value={site.proximoJogo.fora} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, fora: e.target.value.toUpperCase() } })} placeholder="Visitante" />
               <div className="grid grid-cols-2 gap-2">
@@ -565,6 +581,8 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 <Field value={site.proximoJogo.competicao} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, competicao: e.target.value.toUpperCase() } })} placeholder="Competição" />
                 <Field value={site.proximoJogo.rodada} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, rodada: e.target.value.toUpperCase() } })} placeholder="Rodada" />
               </div>
+            </Fold>
+            <Fold title="Escudos do confronto" resumo="Mandante + adversário (galeria do celular)">
               <ImageField
                 label="Escudo do mandante (casa)"
                 hint="Vazio = usa o escudo do clube."
@@ -577,11 +595,11 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 value={site.proximoJogo.foraEscudo}
                 onChange={(v) => site.update({ proximoJogo: { ...site.proximoJogo, foraEscudo: v } })}
               />
-            </Sec>
-            <Sec title="Banner do confronto" sub="Arte estilo flyer gerada com os dados acima.">
+            </Fold>
+            <Fold title="Banner do confronto" resumo="Arte 1080×1350 pronta para compartilhar">
               <BannerTools />
-            </Sec>
-            <Sec title="Último resultado" sub="Placar exibido na tela Jogos.">
+            </Fold>
+            <Fold title="Último resultado" resumo={`${site.ultimoJogo.casa} ${site.ultimoJogo.golsCasa}×${site.ultimoJogo.golsFora} ${site.ultimoJogo.fora} • ${site.ultimoJogo.data}`}>
               <div className="grid grid-cols-2 gap-2">
                 <Field value={site.ultimoJogo.casa} onChange={(e) => site.update({ ultimoJogo: { ...site.ultimoJogo, casa: e.target.value.toUpperCase() } })} placeholder="Casa (sigla)" />
                 <Field value={site.ultimoJogo.fora} onChange={(e) => site.update({ ultimoJogo: { ...site.ultimoJogo, fora: e.target.value.toUpperCase() } })} placeholder="Fora (sigla)" />
@@ -589,8 +607,8 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 <Field value={String(site.ultimoJogo.golsFora)} inputMode="numeric" onChange={(e) => site.update({ ultimoJogo: { ...site.ultimoJogo, golsFora: Number(e.target.value) || 0 } })} placeholder="Gols fora" />
               </div>
               <Field value={site.ultimoJogo.data} onChange={(e) => site.update({ ultimoJogo: { ...site.ultimoJogo, data: e.target.value } })} placeholder="Data — ex: 18 MAI" />
-            </Sec>
-            <Sec title="Classificação" sub="Pontos e saldo calculados sozinhos (P = V×3 + E). Forma: letras V/E/D, ex VVEVD.">
+            </Fold>
+            <Fold title="Classificação" resumo={`${site.classificacao.length} times • pontos calculados sozinhos`}>
               {site.classificacao.map((t) => (
                 <div key={t.id} className="rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
                   <div className="flex items-center gap-1.5">
@@ -619,7 +637,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
               >
                 + Adicionar time
               </button>
-            </Sec>
+            </Fold>
           </>
         )}
 
