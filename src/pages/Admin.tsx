@@ -471,7 +471,8 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
         )}
 
         {aba === "atletas" && (
-          <Sec title="Atletas" sub="Cadastrar, editar número/posição e excluir.">
+          <>
+            <Fold title="Novo atleta" resumo="Cadastrar no elenco" open>
             <div className="grid grid-cols-2 gap-2">
               <Field value={fAtleta.nome} onChange={(e) => setFAtleta({ ...fAtleta, nome: e.target.value.toUpperCase() })} placeholder="Nome completo" />
               <Field value={fAtleta.posicao} onChange={(e) => setFAtleta({ ...fAtleta, posicao: e.target.value })} placeholder="Posição" />
@@ -488,8 +489,9 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
             >
               ADICIONAR ATLETA
             </button>
+            </Fold>
             {[...site.atletas].sort((a, b) => a.numero - b.numero).map((a) => (
-              <div key={a.id} className="rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
+              <Fold key={a.id} title={a.nome} resumo={`#${a.numero} • ${a.posicao} • ${a.nasc}`}>
                 <div className="flex items-center gap-2">
                   <FotoBtn foto={a.foto ?? ""} nome={a.nome} onChange={(v) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, foto: v } : x)) })} />
                   <input value={a.numero} inputMode="numeric" title="Número da camisa" onChange={(e) => site.update({ atletas: site.atletas.map((x) => (x.id === a.id ? { ...x, numero: Number(e.target.value) || 0 } : x)) })} className="w-12 rounded-lg bg-black/50 p-1.5 text-center text-sm font-extrabold outline-none ring-1 ring-white/10" />
@@ -507,13 +509,14 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                     </label>
                   ))}
                 </div>
-              </div>
+              </Fold>
             ))}
-          </Sec>
+          </>
         )}
 
         {aba === "agenda" && (
-          <Sec title="Eventos da agenda" sub="Jogos e treinos exibidos no calendário.">
+          <>
+            <Fold title="Novo evento" resumo="Jogo ou treino no calendário" open>
             <div className="grid grid-cols-4 gap-2">
               <Field value={fEvento.dia} inputMode="numeric" maxLength={2} onChange={(e) => setFEvento({ ...fEvento, dia: e.target.value })} placeholder="Dia" />
               <Field value={fEvento.mes} maxLength={3} onChange={(e) => setFEvento({ ...fEvento, mes: e.target.value.toUpperCase() })} placeholder="Mês" />
@@ -557,6 +560,8 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
             >
               {fEvento.repetir === 1 ? "CRIAR EVENTO" : `CRIAR ${fEvento.repetir} EVENTOS SEMANAIS`}
             </button>
+            </Fold>
+            <p className="px-1 text-[10px] font-extrabold tracking-[0.25em] text-zinc-500">{site.eventos.length} EVENTOS NO CALENDÁRIO</p>
             {[...site.eventos].sort((a, b) => (a.ano + a.mes + a.dia).localeCompare(b.ano + b.mes + b.dia)).map((e) => (
               <div key={e.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
                 <span className={`rounded-md px-2 py-1 text-[10px] font-extrabold ${e.tipo === "JOGO" ? "bg-red-600" : "bg-white/10 text-zinc-300"}`}>{e.tipo}</span>
@@ -564,7 +569,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 <Del onClick={() => site.update({ eventos: site.eventos.filter((x) => x.id !== e.id) })} />
               </div>
             ))}
-          </Sec>
+          </>
         )}
 
         {aba === "jogos" && (
