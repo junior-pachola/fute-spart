@@ -615,25 +615,43 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
             </Fold>
             <Fold title="Classificação" resumo={`${site.classificacao.length} times • pontos calculados sozinhos`}>
               {site.classificacao.map((t) => (
-                <div key={t.id} className="rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
+                <div key={t.id} className="rounded-xl bg-black/30 p-2.5 ring-1 ring-white/10">
                   <div className="flex items-center gap-1.5">
-                    <Field value={t.sigla} maxLength={3} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, sigla: e.target.value.toUpperCase() } : x)) })} placeholder="SIG" className="w-14 text-center font-extrabold" />
-                    <Field value={t.time} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, time: e.target.value } : x)) })} placeholder="Nome do time" />
-                    <Del onClick={() => site.update({ classificacao: site.classificacao.filter((x) => x.id !== t.id) })} />
+                    <div className="w-[52px] shrink-0">
+                      <Field value={t.sigla} maxLength={3} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, sigla: e.target.value.toUpperCase() } : x)) })} placeholder="SIG" className="px-1 text-center font-extrabold" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Field value={t.time} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, time: e.target.value } : x)) })} placeholder="Nome do time" />
+                    </div>
+                    <button
+                      onClick={() => { if (confirm(`Excluir ${t.time} da tabela?`)) site.update({ classificacao: site.classificacao.filter((x) => x.id !== t.id) }); }}
+                      aria-label={`Excluir ${t.time}`}
+                      className="press flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600/15 text-2xl font-black leading-none text-red-400 ring-1 ring-red-600/30"
+                    >
+                      ×
+                    </button>
                   </div>
-                  <div className="mt-1.5 grid grid-cols-7 gap-1.5">
-                    {(["j", "v", "e", "d", "gp", "gc"] as const).map((k) => (
+                  <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+                    {(["j", "v", "e", "d"] as const).map((k) => (
                       <label key={k} className="text-center">
                         <span className="text-[9px] font-extrabold text-zinc-500">{k.toUpperCase()}</span>
-                        <input value={t[k]} inputMode="numeric" onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, [k]: Number(e.target.value) || 0 } : x)) })} className="w-full rounded-lg bg-black/50 p-1.5 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                        <input value={t[k]} inputMode="numeric" onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, [k]: Number(e.target.value) || 0 } : x)) })} className="w-full rounded-lg bg-black/50 p-2 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-1.5 grid grid-cols-[1fr_1fr_1.5fr] gap-1.5">
+                    {(["gp", "gc"] as const).map((k) => (
+                      <label key={k} className="text-center">
+                        <span className="text-[9px] font-extrabold text-zinc-500">{k.toUpperCase()}</span>
+                        <input value={t[k]} inputMode="numeric" onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, [k]: Number(e.target.value) || 0 } : x)) })} className="w-full rounded-lg bg-black/50 p-2 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
                       </label>
                     ))}
                     <label className="text-center">
                       <span className="text-[9px] font-extrabold text-zinc-500">FORMA</span>
-                      <input value={t.forma} maxLength={5} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, forma: e.target.value.toUpperCase().replace(/[^VED]/g, "") } : x)) })} className="w-full rounded-lg bg-black/50 p-1.5 text-center text-sm font-bold outline-none ring-1 ring-white/10" />
+                      <input value={t.forma} maxLength={5} onChange={(e) => site.update({ classificacao: site.classificacao.map((x) => (x.id === t.id ? { ...x, forma: e.target.value.toUpperCase().replace(/[^VED]/g, "") } : x)) })} placeholder="VVVVV" className="w-full rounded-lg bg-black/50 p-2 text-center text-sm font-bold outline-none ring-1 ring-white/10 placeholder:text-zinc-700" />
                     </label>
                   </div>
-                  <p className="mt-1 text-right text-[11px] text-zinc-500">{t.v * 3 + t.e} pts • saldo {t.gp - t.gc > 0 ? `+${t.gp - t.gc}` : t.gp - t.gc}</p>
+                  <p className="mt-1.5 truncate text-right text-[11px] font-bold text-zinc-400">{t.v * 3 + t.e} pts • saldo {t.gp - t.gc > 0 ? `+${t.gp - t.gc}` : t.gp - t.gc}</p>
                 </div>
               ))}
               <button
