@@ -267,6 +267,35 @@ function AdmArea({ onExit, pinOk, setPinOk, adminAba, setAdminAba }: {
 export default function App() {
   const site = useSite();
   const auth = useAuth();
+
+  // Auto-atualização: quando publicar versão nova, recarrega sozinho
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    let cancelled = false;
+    const check = () => {
+      navigator.serviceWorker
+        .getRegistration()
+        .then((reg) => {
+          if (!reg || cancelled) return;
+          reg.update().catch(() => {});
+        })
+        .catch(() => {});
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    const onCtrl = () => window.location.reload();
+    navigator.serviceWorker.addEventListener("controllerchange", onCtrl);
+    document.addEventListener("visibilitychange", onVis);
+    check();
+    const t = setInterval(check, 30 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+      navigator.serviceWorker.removeEventListener("controllerchange", onCtrl);
+    };
+  }, []);
   const [pinOk, setPinOk] = useState(false);
   const [adminAba, setAdminAba] = useState<AbaAdm>("geral");
   const [route, setRoute] = useState<Route>("inicio");
