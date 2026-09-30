@@ -11,7 +11,7 @@ import {
 export interface Atleta { id: string; nome: string; posicao: string; nasc: string; numero: number; foto: string; gols: number; assistencias: number; jogos: number; amarelos: number; vermelhos: number }
 export interface Evento { id: string; dia: string; mes: string; ano: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
-export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
+export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string; info: string }
 export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number; texto?: string }
 export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE"; logo: string; link: string }
 export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; link: string; createdAt?: number }
@@ -58,7 +58,7 @@ const DEFAULTS: SiteState = {
     { dia: "27", mes: "MAI", ano: "2026", hora: "19:00", titulo: "TREINO", detalhe: "Treino Técnico — CT Spartax", tipo: "TREINO" as const },
     { dia: "29", mes: "MAI", ano: "2026", hora: "08:30", titulo: "TREINO", detalhe: "Treino Físico — CT Spartax", tipo: "TREINO" as const },
   ].map((e) => ({ ...e, id: uid() })),
-  proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "" },
+  proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "", info: "" },
   ultimoJogo: { id: "j1", casa: "SPX", fora: "GRE", golsCasa: 3, golsFora: 1, data: "18 MAI", local: "Estádio Municipal", gols: [{ minuto: "9'", autor: "Kauan" }, { minuto: "54'", autor: "Miguel" }, { minuto: "78'", autor: "Gabriel" }] },
   noticias: [
     {
@@ -104,12 +104,113 @@ const DEFAULTS: SiteState = {
 
 const KEY = "spartax-site-v1";
 
+const S = (v: unknown, fb = ""): string => (typeof v === "string" ? v : v == null ? fb : String(v));
+const N = (v: unknown, fb = 0): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fb;
+};
+const TIPO_EV = (v: unknown): "JOGO" | "TREINO" => (v === "JOGO" ? "JOGO" : "TREINO");
+const TIPO_MIDIA = (v: unknown): "FOTO" | "VIDEO" => (v === "VIDEO" ? "VIDEO" : "FOTO");
+const NIVEL = (v: unknown): "OURO" | "PRATA" | "BRONZE" =>
+  v === "OURO" ? "OURO" : v === "PRATA" ? "PRATA" : "BRONZE";
+
+/**
+ * Normaliza qualquer conteúdo (nuvem antiga, cache legado) para os tipos
+ * esperados pelas telas — evita crash por campo ausente ou tipo errado.
+ */
+function sanitize(s: SiteState): SiteState {
+  const a = s as unknown as Record<string, unknown>;
+  const arr = (k: string): Record<string, unknown>[] => (Array.isArray(a[k]) ? (a[k] as Record<string, unknown>[]) : []);
+  return {
+    ...s,
+    escudo: {
+      nome: S((s.escudo as unknown as Record<string, unknown>)?.nome, "SPARTAX"),
+      sigla: S((s.escudo as unknown as Record<string, unknown>)?.sigla, "SPX"),
+      primaria: S((s.escudo as unknown as Record<string, unknown>)?.primaria, "#C8102E"),
+      secundaria: S((s.escudo as unknown as Record<string, unknown>)?.secundaria, "#7A0C1E"),
+      imagemUrl: S((s.escudo as unknown as Record<string, unknown>)?.imagemUrl),
+    },
+    heroImagem: S(s.heroImagem),
+    atletas: arr("atletas").map((x) => ({
+      id: S(x.id), nome: S(x.nome, "ATLETA"), posicao: S(x.posicao, "—"), nasc: S(x.nasc, "—"),
+      numero: N(x.numero), foto: S(x.foto), gols: N(x.gols), assistencias: N(x.assistencias),
+      jogos: N(x.jogos), amarelos: N(x.amarelos), vermelhos: N(x.vermelhos),
+    })),
+    eventos: arr("eventos").map((x) => ({
+      id: S(x.id), dia: S(x.dia), mes: S(x.mes), ano: S(x.ano), hora: S(x.hora),
+      titulo: S(x.titulo), detalhe: S(x.detalhe), tipo: TIPO_EV(x.tipo),
+    })),
+    proximoJogo: {
+      casa: S((s.proximoJogo as unknown as Record<string, unknown>)?.casa, "SPARTAX"),
+      fora: S((s.proximoJogo as unknown as Record<string, unknown>)?.fora, "—"),
+      data: S((s.proximoJogo as unknown as Record<string, unknown>)?.data),
+      hora: S((s.proximoJogo as unknown as Record<string, unknown>)?.hora),
+      local: S((s.proximoJogo as unknown as Record<string, unknown>)?.local),
+      competicao: S((s.proximoJogo as unknown as Record<string, unknown>)?.competicao),
+      rodada: S((s.proximoJogo as unknown as Record<string, unknown>)?.rodada),
+      casaEscudo: S((s.proximoJogo as unknown as Record<string, unknown>)?.casaEscudo),
+      foraEscudo: S((s.proximoJogo as unknown as Record<string, unknown>)?.foraEscudo),
+      info: S((s.proximoJogo as unknown as Record<string, unknown>)?.info),
+    },
+    ultimoJogo: {
+      id: S((s.ultimoJogo as unknown as Record<string, unknown>)?.id, "j1"),
+      casa: S((s.ultimoJogo as unknown as Record<string, unknown>)?.casa, "SPX"),
+      fora: S((s.ultimoJogo as unknown as Record<string, unknown>)?.fora, "—"),
+      golsCasa: N((s.ultimoJogo as unknown as Record<string, unknown>)?.golsCasa),
+      golsFora: N((s.ultimoJogo as unknown as Record<string, unknown>)?.golsFora),
+      data: S((s.ultimoJogo as unknown as Record<string, unknown>)?.data),
+      local: S((s.ultimoJogo as unknown as Record<string, unknown>)?.local),
+      gols: Array.isArray((s.ultimoJogo as unknown as Record<string, unknown>)?.gols)
+        ? ((s.ultimoJogo as unknown as Record<string, unknown>).gols as Record<string, unknown>[]).map((g) => ({
+            minuto: S(g.minuto), autor: S(g.autor),
+          }))
+        : [],
+    },
+    noticias: arr("noticias").map((x) => ({
+      id: S(x.id), titulo: S(x.titulo, "Sem título"), data: S(x.data), categoria: S(x.categoria, "Clube"),
+      imagem: S(x.imagem), texto: S(x.texto), destaque: x.destaque === true,
+      createdAt: N(x.createdAt),
+    })),
+    parceiros: arr("parceiros").map((x) => ({
+      id: S(x.id), nome: S(x.nome, "Parceiro"), tipo: S(x.tipo, "Apoiador"), detalhe: S(x.detalhe),
+      cor: S(x.cor, "bg-red-600"), nivel: NIVEL(x.nivel), logo: S(x.logo), link: S(x.link),
+    })),
+    galeria: arr("galeria").map((x) => ({
+      id: S(x.id), url: S(x.url), tipo: TIPO_MIDIA(x.tipo), link: S(x.link), createdAt: N(x.createdAt),
+    })),
+    projeto: {
+      titulo: S((s.projeto as unknown as Record<string, unknown>)?.titulo),
+      subtitulo: S((s.projeto as unknown as Record<string, unknown>)?.subtitulo),
+      valorTotal: S((s.projeto as unknown as Record<string, unknown>)?.valorTotal),
+      captado: S((s.projeto as unknown as Record<string, unknown>)?.captado),
+      aCaptar: S((s.projeto as unknown as Record<string, unknown>)?.aCaptar),
+      percentual: S((s.projeto as unknown as Record<string, unknown>)?.percentual, "0%"),
+      confirmados: Array.isArray((s.projeto as unknown as Record<string, unknown>)?.confirmados)
+        ? ((s.projeto as unknown as Record<string, unknown>).confirmados as Record<string, unknown>[]).map((c) => ({
+            nome: S(c.nome), detalhe: S(c.detalhe), valor: S(c.valor, "—"),
+          }))
+        : [],
+    },
+    documentos: arr("documentos").map((x) => ({
+      id: S(x.id), nome: S(x.nome, "Documento"), atualizado: S(x.atualizado), tamanho: S(x.tamanho),
+    })),
+    notificacoes: arr("notificacoes").map((x) => ({
+      id: S(x.id), titulo: S(x.titulo), data: S(x.data), lida: x.lida === true,
+    })),
+    classificacao: arr("classificacao").map((x) => ({
+      id: S(x.id), time: S(x.time, "Time"), sigla: S(x.sigla, "—"),
+      j: N(x.j), v: N(x.v), e: N(x.e), d: N(x.d), gp: N(x.gp), gc: N(x.gc), forma: S(x.forma),
+    })),
+    pin: S(s.pin, "1234"),
+  };
+}
+
 function load(): SiteState {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, ...parsed };
+    return sanitize({ ...DEFAULTS, ...parsed });
   } catch {
     return DEFAULTS;
   }
@@ -257,7 +358,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             const gal = mapGaleria(g2.docs.map((d) => ({ id: d.id, data: () => d.data() as Record<string, unknown> })));
             const not = mapNoticias(n2.docs.map((d) => ({ id: d.id, data: () => d.data() as Record<string, unknown> })));
             prevListsRef.current = { galeria: gal, noticias: not };
-            setState((s) => ({ ...s, ...(clean as Partial<SiteState>), galeria: gal, noticias: not }));
+            setState((s) => sanitize({ ...s, ...(clean as Partial<SiteState>), galeria: gal, noticias: not }));
           }
         }
       } catch { /* segue com o cache local */ }
@@ -276,7 +377,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         const json = JSON.stringify(clean);
         if (json !== cloudJsonRef.current) {
           cloudJsonRef.current = json;
-          setState((s) => ({ ...s, ...(clean as Partial<SiteState>) }));
+          setState((s) => sanitize({ ...s, ...(clean as Partial<SiteState>) }));
         }
       },
       () => {}

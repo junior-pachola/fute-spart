@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon, Shield } from "./components/brand";
 import Admin, { GRUPOS_ADM, MENU_ADM, type Aba as AbaAdm } from "./pages/Admin";
+import { RouteErrorBoundary } from "./components/ErrorBoundary";
 import { useSite } from "./store/site";
 import { authErroPt, useAuth } from "./store/auth";
 import type { Route as MockRoute } from "./data/mock";
@@ -94,6 +95,17 @@ function textoCountdown(diff: number): string {
   if (diff > 1) return `EM ${diff} DIAS`;
   if (diff === -1) return "ONTEM";
   return `HÁ ${Math.abs(diff)} DIAS`;
+}
+
+/** Lê "25 de maio de 2026" + "15:30" e devolve a Date (ou null). */
+function parseDataJogo(data: string, hora: string): Date | null {
+  const m = data.match(/(\d{1,2})\s+de\s+([a-zç]+)\s+de\s+(\d{4})/i);
+  if (!m) return null;
+  const meses = ["janeiro", "fevereiro", "março", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const mi = meses.indexOf(m[2].toLowerCase());
+  if (mi < 0) return null;
+  const [h, min] = hora.split(":").map(Number);
+  return new Date(Number(m[3]), mi, Number(m[1]), h || 0, min || 0);
 }
 
 function SectionHead({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
@@ -299,6 +311,10 @@ export default function App() {
   const head = TITULOS[route];
   const nomeClube = site.escudo.nome;
   const percWidth = Math.min(100, Math.max(0, parseFloat(site.projeto.percentual.replace(",", ".")) || 0));
+  const pjDiff = useMemo(() => {
+    const d = parseDataJogo(site.proximoJogo.data, site.proximoJogo.hora);
+    return d ? diasAte(d) : null;
+  }, [site.proximoJogo.data, site.proximoJogo.hora]);
 
   function go(r: Route) {
     setRoute(r);
@@ -592,6 +608,7 @@ export default function App() {
 
         <div className="min-w-0 flex-1">
       <main className="min-w-0 flex-1 pb-28 md:pb-10 md:[&>div]:mx-auto md:[&>div]:w-full md:[&>div]:max-w-7xl md:[&>div]:px-8">
+      <RouteErrorBoundary key={route} route={route} onHome={() => go("inicio")}>
         {route === "adm" && <AdmArea onExit={() => go("inicio")} pinOk={pinOk} setPinOk={setPinOk} adminAba={adminAba} setAdminAba={setAdminAba} />}
 
         {route === "inicio" && (
@@ -648,6 +665,11 @@ export default function App() {
                     <h3 className="font-display mt-1 text-4xl font-extrabold italic leading-none tracking-wide">
                       CONFRONTO
                     </h3>
+                    {pjDiff != null && pjDiff >= 0 && (
+                      <p className="mx-auto mt-2 w-fit rounded-full bg-gold-500/15 px-3 py-1 text-[10px] font-extrabold tracking-[0.2em] text-gold-400 ring-1 ring-gold-500/40">
+                        {pjDiff === 0 ? "É HOJE" : pjDiff === 1 ? "AMANHÃ" : `FALTAM ${pjDiff} DIAS`}
+                      </p>
+                    )}
                     <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
                       <div className="rounded-2xl bg-white px-2 py-3 text-center">
                         <div className="flex justify-center">
@@ -681,15 +703,38 @@ export default function App() {
                     </div>
                     <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-2xl bg-sparta-600 px-4 py-2.5">
                       <span className="font-display text-base font-extrabold italic">{site.proximoJogo.data}</span>
-                      <span className="truncate text-center text-xs font-bold">{site.proximoJogo.local}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.proximoJogo.local)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir no mapa"
+                        className="truncate text-center text-xs font-bold underline-offset-2 hover:underline"
+                      >
+                        {site.proximoJogo.local}
+                      </a>
                       <span className="font-display text-base font-extrabold italic">{site.proximoJogo.hora}</span>
                     </div>
+                    {site.proximoJogo.info && (
+                      <p className="relative mt-2 rounded-xl bg-gold-500/10 px-3 py-2 text-center text-[11px] font-semibold text-gold-400 ring-1 ring-gold-500/30">
+                        {site.proximoJogo.info}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="relative flex gap-2 p-3 pt-0">
                   <button onClick={() => go("agenda")} className="press flex flex-1 items-center justify-center gap-1 rounded-2xl bg-sparta-600 py-3 text-[13px] font-extrabold tracking-wide text-white">
                     VER AGENDA COMPLETA <Icon name="chevron" size={16} />
                   </button>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`PRÓXIMO CONFRONTO: ${site.proximoJogo.casa} x ${site.proximoJogo.fora} — ${site.proximoJogo.data} às ${site.proximoJogo.hora} • ${site.proximoJogo.local}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Compartilhar confronto"
+                    aria-label="Compartilhar confronto"
+                    className="press flex w-[52px] shrink-0 items-center justify-center rounded-2xl bg-green-700"
+                  >
+                    <Icon name="chat" size={19} />
+                  </a>
                 </div>
               </div>
 
@@ -1804,6 +1849,7 @@ export default function App() {
             </div>
           </div>
         )}
+      </RouteErrorBoundary>
       </main>
         </div>
       </div>

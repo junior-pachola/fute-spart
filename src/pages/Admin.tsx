@@ -582,6 +582,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 <Field value={site.proximoJogo.hora} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, hora: e.target.value } })} placeholder="Hora" />
               </div>
               <Field value={site.proximoJogo.local} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, local: e.target.value } })} placeholder="Local" />
+              <Field value={site.proximoJogo.info} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, info: e.target.value } })} placeholder="Aviso — ex: Portões abrem às 14h (opcional)" />
               <div className="grid grid-cols-2 gap-2">
                 <Field value={site.proximoJogo.competicao} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, competicao: e.target.value.toUpperCase() } })} placeholder="Competição" />
                 <Field value={site.proximoJogo.rodada} onChange={(e) => site.update({ proximoJogo: { ...site.proximoJogo, rodada: e.target.value.toUpperCase() } })} placeholder="Rodada" />
