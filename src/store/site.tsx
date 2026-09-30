@@ -3,7 +3,6 @@ import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from 
 import { db, isFirebaseConfigured, SITE_DOC_PATH } from "../lib/firebase";
 import {
   documentos as documentos0,
-  noticias as noticias0,
   notificacoesIniciais as notifs0,
   parceiros as parceiros0,
   projeto as projeto0,
@@ -13,7 +12,7 @@ export interface Atleta { id: string; nome: string; posicao: string; nasc: strin
 export interface Evento { id: string; dia: string; mes: string; ano: string; hora: string; titulo: string; detalhe: string; tipo: "JOGO" | "TREINO" }
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
 export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
-export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number }
+export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number; texto?: string }
 export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE" }
 export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; createdAt?: number }
 export interface Projeto { titulo: string; subtitulo: string; valorTotal: string; captado: string; aCaptar: string; percentual: string; confirmados: { nome: string; detalhe: string; valor: string }[] }
@@ -61,7 +60,32 @@ const DEFAULTS: SiteState = {
   ].map((e) => ({ ...e, id: uid() })),
   proximoJogo: { casa: "SPARTAX", fora: "A.E. CLUBE", data: "25 de maio de 2026", hora: "15:30", local: "Estádio Municipal — Waiporã, PR", competicao: "CAMPEONATO REGIONAL", rodada: "RODADA 8", casaEscudo: "", foraEscudo: "" },
   ultimoJogo: { id: "j1", casa: "SPX", fora: "GRE", golsCasa: 3, golsFora: 1, data: "18 MAI", local: "Estádio Municipal", gols: [{ minuto: "9'", autor: "Kauan" }, { minuto: "54'", autor: "Miguel" }, { minuto: "78'", autor: "Gabriel" }] },
-  noticias: noticias0.map((n, i) => ({ ...n, id: uid(), imagem: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=400&auto=format&fit=crop"][i % 4], destaque: i === 0 })),
+  noticias: [
+    {
+      titulo: "Spartax vence e avança para a próxima fase do Campeonato Regional",
+      data: "21/05/2026",
+      categoria: "Jogos",
+      texto: "Em noite inspirada no Estádio Municipal, o Spartax venceu por 3 a 1 e garantiu vaga na próxima fase do Campeonato Regional.\n\nOs gols foram marcados no primeiro e no segundo tempo, com grande atuação coletiva e apoio da torcida, que lotou as arquibancadas.",
+    },
+    {
+      titulo: "Treino físico e disciplina: a base da nossa evolução",
+      data: "18/05/2026",
+      categoria: "Treinos",
+      texto: "A comissão técnica intensificou a preparação física do elenco nesta semana, com foco em resistência e transição rápida.\n\nDisciplina tática e entrega nos treinos têm sido o diferencial do grupo na temporada.",
+    },
+    {
+      titulo: "Categoria de base se destaca em amistoso",
+      data: "15/05/2026",
+      categoria: "Base",
+      texto: "Os garotos da base mostraram personalidade e venceram o amistoso do fim de semana com futebol envolvente.\n\nTrês atletas foram promovidos ao elenco principal e já treinam com o grupo.",
+    },
+    {
+      titulo: "Parceria com nova empresa fortalece o projeto Spartax",
+      data: "10/05/2026",
+      categoria: "Clube",
+      texto: "O Spartax anuncia uma nova parceria que vai reforçar o projeto esportivo e social do clube.\n\nO apoio garante melhores condições de treino, material esportivo e estrutura para as categorias de base.",
+    },
+  ].map((n, i) => ({ ...n, id: uid(), imagem: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=400&auto=format&fit=crop"][i % 4], destaque: i === 0 })),
   parceiros: parceiros0.map((p, i) => ({ id: uid(), nome: p.nome, tipo: p.tipo, detalhe: p.detalhe, cor: ["bg-orange-500","bg-green-600","bg-emerald-500","bg-red-600"][i % 4], nivel: (i === 0 ? "OURO" : i === 1 ? "PRATA" : "BRONZE") as Parceiro["nivel"] })),
   galeria: [
     "photo-1522778119026-d647f0596c20","photo-1574629810360-7efbbe195018","photo-1517466787929-bc90951d0974","photo-1579952363873-27f3bade9f55","photo-1553778263-73a83bab9b0c","photo-1560272564-c83b66b1ad12","photo-1529900748604-07564a03e7a6","photo-1489944440615-453fc2b6a9a9","photo-1517927033932-b3d18e61fb3a",
@@ -143,6 +167,7 @@ function mapNoticias(docs: { id: string; data: () => Record<string, unknown> }[]
         data: String(v.data ?? ""),
         categoria: String(v.categoria ?? "Clube"),
         imagem: String(v.imagem ?? ""),
+        texto: String(v.texto ?? ""),
         createdAt: Number(v.createdAt ?? 0),
       };
     })
@@ -184,6 +209,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           await seedColl(NOT_PATH, local.noticias, (n) => ({
             titulo: (n as Noticia).titulo, data: (n as Noticia).data,
             categoria: (n as Noticia).categoria, imagem: (n as Noticia).imagem,
+            texto: (n as Noticia).texto ?? "",
           }));
           if (!cancelled) {
             const clean = pickScalars(local as unknown as Record<string, unknown>);
@@ -211,12 +237,13 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           if (notSnap.empty && inlineN.length) {
             await seedColl(NOT_PATH, inlineN.map((n) => ({ id: n.id ?? uid() })), (x) => {
               const n = inlineN.find((v) => v.id === (x as { id: string }).id) ?? inlineN[0];
-              return { titulo: n.titulo, data: n.data, categoria: n.categoria, imagem: n.imagem };
+              return { titulo: n.titulo, data: n.data, categoria: n.categoria, imagem: n.imagem, texto: n.texto ?? "" };
             });
           } else if (notSnap.empty && local.noticias.length) {
             await seedColl(NOT_PATH, local.noticias, (n) => ({
               titulo: (n as Noticia).titulo, data: (n as Noticia).data,
               categoria: (n as Noticia).categoria, imagem: (n as Noticia).imagem,
+              texto: (n as Noticia).texto ?? "",
             }));
           }
           const [g2, n2] = await Promise.all([
@@ -333,6 +360,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         syncColl("noticias", prevListsRef.current.noticias, noticias, (n) => ({
           titulo: (n as Noticia).titulo, data: (n as Noticia).data,
           categoria: (n as Noticia).categoria, imagem: (n as Noticia).imagem,
+          texto: (n as Noticia).texto ?? "",
         }));
         prevListsRef.current.noticias = [...noticias];
       }
@@ -351,7 +379,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         await Promise.all([...g.docs, ...n.docs].map((d) => deleteDoc(d.ref).catch(() => {})));
         await Promise.all([
           ...DEFAULTS.galeria.map((it, i) => setDoc(doc(database, `${GAL_PATH}/${it.id}`), { url: it.url, tipo: it.tipo, createdAt: Date.now() - i })),
-          ...DEFAULTS.noticias.map((it, i) => setDoc(doc(database, `${NOT_PATH}/${it.id}`), { titulo: it.titulo, data: it.data, categoria: it.categoria, imagem: it.imagem, createdAt: Date.now() - i })),
+          ...DEFAULTS.noticias.map((it, i) => setDoc(doc(database, `${NOT_PATH}/${it.id}`), { titulo: it.titulo, data: it.data, categoria: it.categoria, imagem: it.imagem, texto: it.texto ?? "", createdAt: Date.now() - i })),
         ]);
         prevListsRef.current = { galeria: [...DEFAULTS.galeria], noticias: [...DEFAULTS.noticias] };
       })().catch(() => {});

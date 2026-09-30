@@ -269,6 +269,8 @@ export default function App() {
   const [diaSel, setDiaSel] = useState<number | null>(() => new Date().getDate());
   const [filtroEv, setFiltroEv] = useState<"TODOS" | "JOGO" | "TREINO">("TODOS");
   const [evAberto, setEvAberto] = useState<string | null>(null);
+  const [notCat, setNotCat] = useState("TODAS");
+  const [notSel, setNotSel] = useState<string | null>(null);
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
 
   useEffect(() => {
@@ -302,6 +304,7 @@ export default function App() {
     setRoute(r);
     setDrawer(false);
     setAtletaSel(null);
+    setNotSel(null);
   }
 
   function goAdm(a: AbaAdm) {
@@ -1306,42 +1309,120 @@ export default function App() {
           );
         })()}
 
-        {route === "noticias" && (
-          <div className="p-4">
-            {site.noticias[0] && (
-              <button onClick={() => {}} className="press block overflow-hidden rounded-3xl bg-[#151517] text-left ring-1 ring-white/10">
-                <div className="relative h-52 bg-zinc-800">
-                  <img src={site.noticias[0].imagem} alt="" loading="lazy" className="h-full w-full object-cover" />
+        {route === "noticias" && (() => {
+          const cats = ["TODAS", ...Array.from(new Set(site.noticias.map((n) => n.categoria)))];
+          const filtradas = notCat === "TODAS" ? site.noticias : site.noticias.filter((n) => n.categoria === notCat);
+          const sel = site.noticias.find((n) => n.id === notSel);
+          const tempoLeitura = (t: string) => Math.max(1, Math.round(t.split(/\s+/).filter(Boolean).length / 200));
+          if (sel) {
+            const outros = site.noticias.filter((n) => n.id !== sel.id).slice(0, 3);
+            return (
+              <div className="p-4 md:p-8">
+                <button onClick={() => setNotSel(null)} className="press flex items-center gap-1 text-xs font-extrabold tracking-wider text-zinc-400">
+                  <Icon name="back" size={16} /> TODAS AS NOTÍCIAS
+                </button>
+                <article className="card-shadow mt-3 overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/10">
+                  <div className="relative h-64 bg-zinc-800 md:h-96">
+                    <img src={sel.imagem} alt={sel.titulo} className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute left-4 top-4 flex gap-1.5">
+                      <span className="rounded-md bg-sparta-600 px-2.5 py-1 text-[10px] font-extrabold tracking-wider">{sel.categoria.toUpperCase()}</span>
+                      <span className="rounded-md bg-black/60 px-2.5 py-1 text-[10px] font-bold text-zinc-300">{tempoLeitura(sel.texto ?? sel.titulo)} MIN DE LEITURA</span>
+                    </div>
+                  </div>
+                  <div className="p-5 md:p-8">
+                    <h1 className="font-display text-3xl font-extrabold italic leading-tight md:text-4xl">{sel.titulo}</h1>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+                      <Icon name="clock" size={13} /> {sel.data} • Por Assessoria {nomeClube}
+                    </p>
+                    <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                      {(sel.texto?.trim() ? sel.texto.split("\n\n") : ["Matéria em breve com todos os detalhes."]).map((p, i) => (
+                        <p key={i} className="text-[15px] leading-relaxed text-zinc-200">{p}</p>
+                      ))}
+                    </div>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`${sel.titulo} — ${nomeClube} (${sel.data})`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="press mt-5 flex items-center justify-center gap-2 rounded-2xl bg-green-700 py-3 text-xs font-extrabold tracking-wide"
+                    >
+                      COMPARTILHAR NO WHATSAPP
+                    </a>
+                  </div>
+                </article>
+                {outros.length > 0 && (
+                  <div className="mt-6">
+                    <SectionHead title="OUTRAS NOTÍCIAS" />
+                    <div className="mt-2 grid gap-2.5 sm:grid-cols-3">
+                      {outros.map((n) => (
+                        <button key={n.id} onClick={() => { setNotSel(n.id); window.scrollTo(0, 0); }} className="press overflow-hidden rounded-2xl bg-[#151517] text-left ring-1 ring-white/10">
+                          <img src={n.imagem} alt="" loading="lazy" className="h-28 w-full bg-zinc-800 object-cover" />
+                          <div className="p-3">
+                            <span className="rounded bg-sparta-600/15 px-1.5 py-0.5 text-[10px] font-extrabold text-sparta-400">{n.categoria.toUpperCase()}</span>
+                            <p className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug">{n.titulo}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+          const destaque = notCat === "TODAS" ? filtradas[0] : undefined;
+          const resto = notCat === "TODAS" ? filtradas.slice(1) : filtradas;
+          return (
+          <div className="p-4 md:p-8">
+            <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
+              {cats.map((c) => {
+                const qtd = c === "TODAS" ? site.noticias.length : site.noticias.filter((n) => n.categoria === c).length;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setNotCat(c)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[11px] font-extrabold tracking-widest ${notCat === c ? "bg-sparta-600 text-white" : "bg-[#151517] text-zinc-500 ring-1 ring-white/10"}`}
+                  >
+                    {c.toUpperCase()}
+                    <span className={`rounded-md px-1.5 text-[10px] ${notCat === c ? "bg-black/30" : "bg-white/5"}`}>{qtd}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {destaque && (
+              <button onClick={() => setNotSel(destaque.id)} className="press mt-3 block overflow-hidden rounded-3xl bg-[#151517] text-left ring-1 ring-white/10">
+                <div className="relative h-52 bg-zinc-800 md:h-80">
+                  <img src={destaque.imagem} alt="" loading="lazy" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent" />
                   <span className="absolute left-3 top-3 rounded-md bg-sparta-600 px-2 py-0.5 text-[10px] font-extrabold">DESTAQUE</span>
-                  <p className="absolute bottom-3 left-3 right-3 font-display text-2xl font-extrabold italic leading-tight">
-                    {site.noticias[0].titulo}
+                  <p className="absolute bottom-3 left-3 right-3 font-display text-2xl font-extrabold italic leading-tight md:text-4xl">
+                    {destaque.titulo}
                   </p>
                 </div>
                 <p className="flex items-center gap-1.5 px-4 py-3 text-[11px] text-zinc-500">
-                  <Icon name="clock" size={13} /> {site.noticias[0].data} • Por Assessoria {nomeClube}
+                  <Icon name="clock" size={13} /> {destaque.data} • Por Assessoria {nomeClube} • {tempoLeitura(destaque.texto ?? destaque.titulo)} min
                 </p>
               </button>
             )}
-            <div className="mt-3 space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
-              {site.noticias.slice(1).map((n) => (
-                <article key={n.id} className="press flex gap-3 rounded-2xl bg-[#151517] p-2.5 ring-1 ring-white/10">
+            <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {resto.map((n) => (
+                <button key={n.id} onClick={() => setNotSel(n.id)} className="press flex gap-3 rounded-2xl bg-[#151517] p-2.5 text-left ring-1 ring-white/10">
                   <img src={n.imagem} alt="" loading="lazy" className="h-20 w-24 shrink-0 rounded-xl bg-zinc-800 object-cover" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <span className="rounded bg-sparta-600/15 px-1.5 py-0.5 text-[10px] font-extrabold text-sparta-400">{n.categoria.toUpperCase()}</span>
                     <p className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug">{n.titulo}</p>
-                    <p className="mt-1 text-[11px] text-zinc-500">{n.data}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{n.data} • {tempoLeitura(n.texto ?? n.titulo)} min</p>
                   </div>
-                </article>
+                </button>
               ))}
-              {site.noticias.length === 0 && (
-                <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10">
-                  Nenhuma notícia publicada.
+              {filtradas.length === 0 && (
+                <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10 sm:col-span-full">
+                  {site.noticias.length === 0 ? "Nenhuma notícia publicada." : "Nada nesta categoria."}
                 </p>
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {route === "galeria" && (
           <div className="p-4">

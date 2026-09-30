@@ -270,7 +270,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
   dt.setDate(dt.getDate() + add);
   return { dia: String(dt.getDate()).padStart(2, "0"), mes: MESES_ADM[dt.getMonth()], ano: String(dt.getFullYear()) };
 }
-  const [fNoticia, setFNoticia] = useState({ titulo: "", data: "", categoria: "Clube", imagem: "" });
+  const [fNoticia, setFNoticia] = useState({ titulo: "", data: "", categoria: "Clube", imagem: "", texto: "" });
   const [fParceiro, setFParceiro] = useState({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" as "OURO" | "PRATA" | "BRONZE" });
   const [fGaleria, setFGaleria] = useState({ url: "", tipo: "FOTO" as GaleriaItem["tipo"] });
   const [fDoc, setFDoc] = useState({ nome: "" });
@@ -654,11 +654,21 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
               <Field value={fNoticia.categoria} onChange={(e) => setFNoticia({ ...fNoticia, categoria: e.target.value })} placeholder="Categoria" />
             </div>
             <ImageField label="Foto da notícia" value={fNoticia.imagem} onChange={(v) => setFNoticia({ ...fNoticia, imagem: v })} />
+            <div>
+              <textarea
+                value={fNoticia.texto}
+                onChange={(e) => setFNoticia({ ...fNoticia, texto: e.target.value })}
+                rows={4}
+                placeholder="Texto da matéria (parágrafos separados por linha em branco)..."
+                className="w-full rounded-xl bg-black/40 p-2.5 text-sm outline-none ring-1 ring-white/10 placeholder:text-zinc-600 focus:ring-red-500"
+              />
+              <p className="mt-1 text-right text-[10px] text-zinc-600">{fNoticia.texto.split(/\s+/).filter(Boolean).length} palavras</p>
+            </div>
             <button
               onClick={() => {
                 if (!fNoticia.titulo.trim()) return alert("Informe o título.");
-                site.update({ noticias: [{ id: uid(), titulo: fNoticia.titulo, data: fNoticia.data || "hoje", categoria: fNoticia.categoria || "Clube", imagem: fNoticia.imagem || site.heroImagem }, ...site.noticias] });
-                setFNoticia({ titulo: "", data: "", categoria: "Clube", imagem: "" });
+                site.update({ noticias: [{ id: uid(), titulo: fNoticia.titulo, data: fNoticia.data || "hoje", categoria: fNoticia.categoria || "Clube", imagem: fNoticia.imagem || site.heroImagem, texto: fNoticia.texto }, ...site.noticias] });
+                setFNoticia({ titulo: "", data: "", categoria: "Clube", imagem: "", texto: "" });
               }}
               className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
             >
