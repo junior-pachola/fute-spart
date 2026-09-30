@@ -13,7 +13,7 @@ export interface Evento { id: string; dia: string; mes: string; ano: string; hor
 export interface JogoResultado { id: string; casa: string; fora: string; golsCasa: number; golsFora: number; data: string; local: string; gols?: { minuto: string; autor: string }[] }
 export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
 export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number; texto?: string }
-export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE" }
+export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE"; logo: string; link: string }
 export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; link: string; createdAt?: number }
 export interface Projeto { titulo: string; subtitulo: string; valorTotal: string; captado: string; aCaptar: string; percentual: string; confirmados: { nome: string; detalhe: string; valor: string }[] }
 export interface Documento { id: string; nome: string; atualizado: string; tamanho: string }
@@ -86,7 +86,7 @@ const DEFAULTS: SiteState = {
       texto: "O Spartax anuncia uma nova parceria que vai reforçar o projeto esportivo e social do clube.\n\nO apoio garante melhores condições de treino, material esportivo e estrutura para as categorias de base.",
     },
   ].map((n, i) => ({ ...n, id: uid(), imagem: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=400&auto=format&fit=crop","https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=400&auto=format&fit=crop"][i % 4], destaque: i === 0 })),
-  parceiros: parceiros0.map((p, i) => ({ id: uid(), nome: p.nome, tipo: p.tipo, detalhe: p.detalhe, cor: ["bg-orange-500","bg-green-600","bg-emerald-500","bg-red-600"][i % 4], nivel: (i === 0 ? "OURO" : i === 1 ? "PRATA" : "BRONZE") as Parceiro["nivel"] })),
+  parceiros: parceiros0.map((p, i) => ({ id: uid(), nome: p.nome, tipo: p.tipo, detalhe: p.detalhe, cor: ["bg-orange-500","bg-green-600","bg-emerald-500","bg-red-600"][i % 4], nivel: (i === 0 ? "OURO" : i === 1 ? "PRATA" : "BRONZE") as Parceiro["nivel"], logo: "", link: "" })),
   galeria: [
     "photo-1522778119026-d647f0596c20","photo-1574629810360-7efbbe195018","photo-1517466787929-bc90951d0974","photo-1579952363873-27f3bade9f55","photo-1553778263-73a83bab9b0c","photo-1560272564-c83b66b1ad12","photo-1529900748604-07564a03e7a6","photo-1489944440615-453fc2b6a9a9","photo-1517927033932-b3d18e61fb3a",
   ].map((p) => ({ id: uid(), url: `https://images.unsplash.com/${p}?q=80&w=400&auto=format&fit=crop`, tipo: "FOTO" as const, link: "" })),

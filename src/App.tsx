@@ -271,6 +271,7 @@ export default function App() {
   const [evAberto, setEvAberto] = useState<string | null>(null);
   const [notCat, setNotCat] = useState("TODAS");
   const [notSel, setNotSel] = useState<string | null>(null);
+  const [parcSel, setParcSel] = useState<string | null>(null);
   const [luz, setLuz] = useState<number | null>(null);
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
 
@@ -297,8 +298,6 @@ export default function App() {
   const hero = site.heroImagem;
   const head = TITULOS[route];
   const nomeClube = site.escudo.nome;
-  const ouro = site.parceiros.find((p) => p.nivel === "OURO") ?? site.parceiros[0];
-  const demaisParceiros = site.parceiros.filter((p) => p !== ouro);
   const percWidth = Math.min(100, Math.max(0, parseFloat(site.projeto.percentual.replace(",", ".")) || 0));
 
   function go(r: Route) {
@@ -306,7 +305,7 @@ export default function App() {
     setDrawer(false);
     setAtletaSel(null);
     setNotSel(null);
-    setLuz(null);
+    setParcSel(null);
   }
 
   function goAdm(a: AbaAdm) {
@@ -1544,39 +1543,109 @@ export default function App() {
           );
         })()}
 
-        {route === "parceiros" && (
-          <div className="space-y-3 p-4">
-            {ouro && (
-              <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500 via-[#8a6d1c] to-[#3d2f08] p-[1px]">
-                <div className="carbon-texture rounded-3xl bg-[#121210] p-4">
-                  <p className="text-[10px] font-extrabold tracking-[0.25em] text-gold-400">PATROCINADOR OURO</p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl font-display text-2xl font-extrabold italic ${ouro.cor}`}>{ouro.nome[0]}</div>
-                    <div>
-                      <p className="font-display text-2xl font-extrabold italic leading-none">{ouro.nome}</p>
-                      <p className="text-xs text-zinc-400">{ouro.detalhe}</p>
-                    </div>
+        {route === "parceiros" && (() => {
+          const NIVEIS = {
+            OURO: { titulo: "PATROCINADOR MASTER", selo: "bg-gold-500/15 text-gold-400 ring-gold-500/40", dot: "bg-gold-400" },
+            PRATA: { titulo: "APOIADOR OFICIAL", selo: "bg-white/10 text-zinc-200 ring-white/20", dot: "bg-zinc-300" },
+            BRONZE: { titulo: "APOIADOR", selo: "bg-amber-700/20 text-amber-500 ring-amber-700/40", dot: "bg-amber-600" },
+          } as const;
+          const grupos = (["OURO", "PRATA", "BRONZE"] as const)
+            .map((nivel) => ({ nivel, itens: site.parceiros.filter((p) => p.nivel === nivel) }))
+            .filter((g) => g.itens.length > 0);
+          const sel = site.parceiros.find((p) => p.id === parcSel);
+          const logoDe = (p: (typeof site.parceiros)[number], cls: string) =>
+            p.logo ? (
+              <img src={p.logo} alt={p.nome} loading="lazy" className={`${cls} bg-white object-contain p-1.5`} />
+            ) : (
+              <div className={`${cls} font-display flex items-center justify-center font-extrabold italic text-white ${p.cor}`}>
+                {p.nome[0]}
+              </div>
+            );
+          return (
+          <div className="space-y-4 p-4 md:p-8">
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-2xl bg-[#151517] p-3 ring-1 ring-white/10">
+                <p className="font-display text-3xl font-extrabold italic leading-none">{site.parceiros.length}</p>
+                <p className="mt-1 text-[9px] font-bold tracking-[0.2em] text-zinc-500">PARCEIROS ATIVOS</p>
+              </div>
+              <div className="rounded-2xl bg-[#151517] p-3 ring-1 ring-gold-500/30">
+                <p className="font-display text-3xl font-extrabold italic leading-none text-gold-400">{site.parceiros.filter((p) => p.nivel === "OURO").length}</p>
+                <p className="mt-1 text-[9px] font-bold tracking-[0.2em] text-zinc-500">PATROCÍNIO OURO</p>
+              </div>
+            </div>
+            {grupos.map((g) => (
+              <div key={g.nivel}>
+                <div className="flex items-center gap-2 px-1">
+                  <span className={`h-2 w-2 rounded-full ${NIVEIS[g.nivel].dot}`} />
+                  <p className="text-[11px] font-extrabold tracking-[0.25em] text-zinc-400">
+                    {g.nivel} • {NIVEIS[g.nivel].titulo}
+                  </p>
+                  <span className="ml-auto rounded-md bg-white/5 px-1.5 text-[10px] font-extrabold text-zinc-500">{g.itens.length}</span>
+                </div>
+                <div className={`mt-2 grid gap-2.5 ${g.nivel === "BRONZE" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-2"}`}>
+                  {g.itens.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setParcSel(p.id)}
+                      className={`press flex items-center gap-3 rounded-2xl bg-[#151517] text-left ring-1 ${g.nivel === "OURO" ? "border border-gold-500/50 p-4 ring-gold-500/30" : "p-3.5 ring-white/10"}`}
+                    >
+                      {logoDe(p, g.nivel === "OURO" ? "h-16 w-16 shrink-0 rounded-2xl text-2xl" : "h-12 w-12 shrink-0 rounded-xl text-xl")}
+                      <span className="min-w-0 flex-1">
+                        <span className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider ring-1 ${NIVEIS[g.nivel].selo}`}>
+                          {g.nivel}
+                        </span>
+                        <span className={`font-display block truncate leading-tight ${g.nivel === "OURO" ? "mt-1 text-2xl font-extrabold italic" : "mt-0.5 text-lg font-bold italic tracking-wide"}`}>
+                          {p.nome}
+                        </span>
+                        <span className="block truncate text-[11px] text-zinc-400">{p.tipo}{p.detalhe ? ` • ${p.detalhe}` : ""}</span>
+                      </span>
+                      <Icon name="chevron" size={17} className="shrink-0 text-zinc-600" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {site.parceiros.length === 0 && (
+              <p className="rounded-2xl bg-[#151517] p-6 text-center text-xs text-zinc-500 ring-1 ring-white/10">
+                Nenhum parceiro cadastrado ainda.
+              </p>
+            )}
+            <button onClick={() => go("fale")} className="press block w-full overflow-hidden rounded-3xl bg-gradient-to-r from-gold-500 via-[#8a6d1c] to-gold-500 p-[1px] text-left">
+              <div className="carbon-texture rounded-3xl bg-[#121210] p-5 text-center">
+                <p className="text-[10px] font-extrabold tracking-[0.3em] text-gold-400">SUA MARCA AQUI</p>
+                <p className="font-display mt-1 text-2xl font-extrabold italic">SEJA UM PATROCINADOR</p>
+                <p className="mx-auto mt-1 max-w-xs text-xs text-zinc-400">Apareça para toda a torcida e fortaleça o clube.</p>
+                <span className="mt-3 inline-block rounded-xl bg-gold-500 px-6 py-2.5 text-sm font-extrabold text-black">
+                  FALAR COM O CLUBE
+                </span>
+              </div>
+            </button>
+            {/* detalhe do parceiro */}
+            {sel && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 md:items-center" onClick={() => setParcSel(null)}>
+                <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-[#151517] ring-1 ring-white/15" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-col items-center p-6 text-center">
+                    {logoDe(sel, "h-24 w-24 rounded-3xl text-4xl")}
+                    <span className={`mt-3 rounded px-2 py-0.5 text-[10px] font-extrabold tracking-wider ring-1 ${NIVEIS[sel.nivel].selo}`}>
+                      {sel.nivel} • {NIVEIS[sel.nivel].titulo}
+                    </span>
+                    <p className="font-display mt-2 text-3xl font-extrabold italic leading-none">{sel.nome}</p>
+                    <p className="mt-1 text-sm text-zinc-400">{sel.tipo}{sel.detalhe ? ` • ${sel.detalhe}` : ""}</p>
+                    {sel.link && (
+                      <a href={sel.link.startsWith("http") ? sel.link : `https://${sel.link}`} target="_blank" rel="noreferrer" className="press mt-4 w-full rounded-2xl bg-white py-3 text-sm font-extrabold text-black">
+                        VISITAR SITE
+                      </a>
+                    )}
+                    <button onClick={() => setParcSel(null)} className="press mt-2 w-full rounded-2xl bg-white/5 py-3 text-sm font-bold text-zinc-300 ring-1 ring-white/10">
+                      FECHAR
+                    </button>
                   </div>
                 </div>
               </div>
             )}
-            {demaisParceiros.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-[#151517] p-3.5 ring-1 ring-white/10">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-xl font-display text-xl font-extrabold italic text-white ${p.cor}`}>
-                  {p.nome[0]}
-                </div>
-                <div className="flex-1">
-                  <p className="font-display text-lg font-bold italic leading-none tracking-wide">{p.nome}</p>
-                  <p className="mt-0.5 text-[11px] text-zinc-400">{p.tipo} • {p.detalhe}</p>
-                </div>
-                <Icon name="chevron" size={17} className="text-zinc-600" />
-              </div>
-            ))}
-            <button onClick={() => go("fale")} className="press w-full rounded-2xl bg-sparta-600 py-3.5 text-sm font-extrabold tracking-wide">
-              SEJA UM PATROCINADOR
-            </button>
           </div>
-        )}
+          );
+        })()}
 
         {route === "projetos" && (
           <div className="space-y-3 p-4">

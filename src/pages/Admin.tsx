@@ -271,7 +271,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
   return { dia: String(dt.getDate()).padStart(2, "0"), mes: MESES_ADM[dt.getMonth()], ano: String(dt.getFullYear()) };
 }
   const [fNoticia, setFNoticia] = useState({ titulo: "", data: "", categoria: "Clube", imagem: "", texto: "" });
-  const [fParceiro, setFParceiro] = useState({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" as "OURO" | "PRATA" | "BRONZE" });
+  const [fParceiro, setFParceiro] = useState({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" as "OURO" | "PRATA" | "BRONZE", logo: "", link: "" });
   const [fGaleria, setFGaleria] = useState({ url: "", tipo: "FOTO" as GaleriaItem["tipo"], link: "" });
   const [fDoc, setFDoc] = useState({ nome: "" });
   const [fAviso, setFAviso] = useState({ titulo: "" });
@@ -745,11 +745,13 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
                 <button key={n} onClick={() => setFParceiro({ ...fParceiro, nivel: n })} className={`rounded-xl py-2 text-xs font-extrabold ${fParceiro.nivel === n ? "bg-red-600" : "bg-black/40 text-zinc-400 ring-1 ring-white/10"}`}>{n}</button>
               ))}
             </div>
+            <ImageField label="Logo do parceiro" hint="Busque na galeria (PNG com fundo branco fica melhor)." value={fParceiro.logo} onChange={(v) => setFParceiro({ ...fParceiro, logo: v })} />
+            <Field value={fParceiro.link} onChange={(e) => setFParceiro({ ...fParceiro, link: e.target.value })} placeholder="Site — ex: empresa.com.br (opcional)" />
             <button
               onClick={() => {
                 if (!fParceiro.nome.trim()) return alert("Informe o nome.");
-                site.update({ parceiros: [...site.parceiros, { id: uid(), nome: fParceiro.nome.trim(), tipo: fParceiro.tipo || "Apoiador", detalhe: fParceiro.detalhe || "", cor: "bg-red-600", nivel: fParceiro.nivel }] });
-                setFParceiro({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" });
+                site.update({ parceiros: [...site.parceiros, { id: uid(), nome: fParceiro.nome.trim(), tipo: fParceiro.tipo || "Apoiador", detalhe: fParceiro.detalhe || "", cor: "bg-red-600", nivel: fParceiro.nivel, logo: fParceiro.logo, link: fParceiro.link.trim() }] });
+                setFParceiro({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE", logo: "", link: "" });
               }}
               className="press w-full rounded-xl bg-red-600 py-2.5 text-sm font-extrabold"
             >
@@ -757,6 +759,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
             </button>
             {site.parceiros.map((p) => (
               <div key={p.id} className="flex items-center gap-2 rounded-xl bg-black/30 p-2 ring-1 ring-white/10">
+                <FotoBtn foto={p.logo ?? ""} nome={p.nome} onChange={(v) => site.update({ parceiros: site.parceiros.map((x) => (x.id === p.id ? { ...x, logo: v } : x)) })} />
                 <span className="rounded-md bg-white/10 px-2 py-1 text-[10px] font-extrabold">{p.nivel}</span>
                 <p className="min-w-0 flex-1 truncate text-xs"><b>{p.nome}</b> — {p.tipo}</p>
                 <Del onClick={() => site.update({ parceiros: site.parceiros.filter((x) => x.id !== p.id) })} />
