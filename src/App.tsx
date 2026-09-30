@@ -271,6 +271,7 @@ export default function App() {
   const [evAberto, setEvAberto] = useState<string | null>(null);
   const [notCat, setNotCat] = useState("TODAS");
   const [notSel, setNotSel] = useState<string | null>(null);
+  const [luz, setLuz] = useState<number | null>(null);
   const [aba, setAba] = useState<"FOTOS" | "VÍDEOS">("FOTOS");
 
   useEffect(() => {
@@ -305,6 +306,7 @@ export default function App() {
     setDrawer(false);
     setAtletaSel(null);
     setNotSel(null);
+    setLuz(null);
   }
 
   function goAdm(a: AbaAdm) {
@@ -1424,31 +1426,71 @@ export default function App() {
           );
         })()}
 
-        {route === "galeria" && (
-          <div className="p-4">
+        {route === "galeria" && (() => {
+          const item = luz != null ? midias[luz] : undefined;
+          async function baixarMidia(url: string) {
+            try {
+              const r = await fetch(url);
+              const b = await r.blob();
+              const u = URL.createObjectURL(b);
+              const a = document.createElement("a");
+              a.href = u;
+              a.download = `spartax-${Date.now()}.jpg`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(u), 5000);
+            } catch {
+              window.open(url, "_blank");
+            }
+          }
+          async function compartilharMidia(url: string) {
+            try {
+              const r = await fetch(url);
+              const b = await r.blob();
+              const f = new File([b], `spartax-${Date.now()}.jpg`, { type: b.type || "image/jpeg" });
+              if (navigator.canShare?.({ files: [f] })) {
+                await navigator.share({ files: [f], title: nomeClube });
+                return;
+              }
+            } catch (e) {
+              if ((e as Error)?.name === "AbortError") return;
+            }
+            await baixarMidia(url);
+          }
+          const qtdFotos = site.galeria.filter((g) => g.tipo === "FOTO").length;
+          const qtdVideos = site.galeria.filter((g) => g.tipo === "VIDEO").length;
+          return (
+          <div className="p-4 md:p-8">
             <div className="grid grid-cols-2 gap-1 rounded-2xl bg-[#151517] p-1 ring-1 ring-white/10">
               {(["FOTOS", "VÍDEOS"] as const).map((a) => (
                 <button
                   key={a}
-                  onClick={() => setAba(a)}
-                  className={`font-display rounded-xl py-2 text-base font-bold italic tracking-widest ${aba === a ? "bg-sparta-600 text-white shadow" : "text-zinc-500"}`}
+                  onClick={() => { setAba(a); setLuz(null); }}
+                  className={`font-display flex items-center justify-center gap-2 rounded-xl py-2 text-base font-bold italic tracking-widest ${aba === a ? "bg-sparta-600 text-white shadow" : "text-zinc-500"}`}
                 >
                   {a}
+                  <span className={`rounded-md px-1.5 text-[11px] not-italic ${aba === a ? "bg-black/30" : "bg-white/5"}`}>
+                    {a === "FOTOS" ? qtdFotos : qtdVideos}
+                  </span>
                 </button>
               ))}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-1.5 md:grid-cols-6">
-              {midias.map((g) => (
-                <div key={g.id} className="press relative aspect-square overflow-hidden rounded-xl bg-zinc-800">
-                  <img src={g.url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  {aba === "VÍDEOS" && (
+              {midias.map((g, i) => (
+                <button
+                  key={g.id}
+                  onClick={() => (g.tipo === "VIDEO" && g.link ? window.open(g.link, "_blank") : setLuz(i))}
+                  className={`press group relative overflow-hidden rounded-xl bg-zinc-800 ${i === 0 ? "aspect-square col-span-2 row-span-2 md:col-span-2 md:row-span-2" : "aspect-square"}`}
+                >
+                  <img src={g.url} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition group-hover:opacity-100" />
+                  {g.tipo === "VIDEO" && (
                     <span className="absolute inset-0 flex items-center justify-center bg-black/35">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sparta-600 shadow-lg">
-                        <Icon name="play" size={15} className="ml-0.5 text-white" />
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sparta-600 shadow-lg transition group-hover:scale-110">
+                        <Icon name="play" size={17} className="ml-0.5 text-white" />
                       </span>
                     </span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
             {midias.length === 0 && (
@@ -1456,8 +1498,51 @@ export default function App() {
                 Nada por aqui ainda — adicione no painel ADM.
               </p>
             )}
+            {/* lightbox */}
+            {item && (
+              <div className="fixed inset-0 z-50 flex flex-col bg-black/95" onClick={() => setLuz(null)}>
+                <div className="flex items-center justify-between px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-extrabold tracking-widest">
+                    {(luz ?? 0) + 1} / {midias.length}
+                  </span>
+                  <div className="flex gap-2">
+                    <button onClick={() => void compartilharMidia(item.url)} aria-label="Compartilhar" className="press flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                      <Icon name="chat" size={18} />
+                    </button>
+                    <button onClick={() => void baixarMidia(item.url)} aria-label="Baixar" className="press flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 font-extrabold">
+                      ↓
+                    </button>
+                    <button onClick={() => setLuz(null)} aria-label="Fechar" className="press flex h-10 w-10 items-center justify-center rounded-xl bg-sparta-600 text-lg font-black">
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-4" onClick={(e) => e.stopPropagation()}>
+                  <img src={item.url.replace("w=400", "w=1200")} alt="" className="max-h-full max-w-full rounded-xl object-contain" />
+                  {midias.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setLuz(((luz ?? 0) - 1 + midias.length) % midias.length)}
+                        aria-label="Anterior"
+                        className="press absolute left-3 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-xl ring-1 ring-white/20"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        onClick={() => setLuz(((luz ?? 0) + 1) % midias.length)}
+                        aria-label="Próxima"
+                        className="press absolute right-3 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-xl ring-1 ring-white/20"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {route === "parceiros" && (
           <div className="space-y-3 p-4">

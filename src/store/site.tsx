@@ -14,7 +14,7 @@ export interface JogoResultado { id: string; casa: string; fora: string; golsCas
 export interface ProximoJogo { casa: string; fora: string; data: string; hora: string; local: string; competicao: string; rodada: string; casaEscudo: string; foraEscudo: string }
 export interface Noticia { id: string; titulo: string; data: string; categoria: string; imagem: string; destaque?: boolean; createdAt?: number; texto?: string }
 export interface Parceiro { id: string; nome: string; tipo: string; detalhe: string; cor: string; nivel: "OURO" | "PRATA" | "BRONZE" }
-export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; createdAt?: number }
+export interface GaleriaItem { id: string; url: string; tipo: "FOTO" | "VIDEO"; link: string; createdAt?: number }
 export interface Projeto { titulo: string; subtitulo: string; valorTotal: string; captado: string; aCaptar: string; percentual: string; confirmados: { nome: string; detalhe: string; valor: string }[] }
 export interface Documento { id: string; nome: string; atualizado: string; tamanho: string }
 export interface Notificacao { id: string; titulo: string; data: string; lida: boolean }
@@ -89,7 +89,7 @@ const DEFAULTS: SiteState = {
   parceiros: parceiros0.map((p, i) => ({ id: uid(), nome: p.nome, tipo: p.tipo, detalhe: p.detalhe, cor: ["bg-orange-500","bg-green-600","bg-emerald-500","bg-red-600"][i % 4], nivel: (i === 0 ? "OURO" : i === 1 ? "PRATA" : "BRONZE") as Parceiro["nivel"] })),
   galeria: [
     "photo-1522778119026-d647f0596c20","photo-1574629810360-7efbbe195018","photo-1517466787929-bc90951d0974","photo-1579952363873-27f3bade9f55","photo-1553778263-73a83bab9b0c","photo-1560272564-c83b66b1ad12","photo-1529900748604-07564a03e7a6","photo-1489944440615-453fc2b6a9a9","photo-1517927033932-b3d18e61fb3a",
-  ].map((p) => ({ id: uid(), url: `https://images.unsplash.com/${p}?q=80&w=400&auto=format&fit=crop`, tipo: "FOTO" as const })),
+  ].map((p) => ({ id: uid(), url: `https://images.unsplash.com/${p}?q=80&w=400&auto=format&fit=crop`, tipo: "FOTO" as const, link: "" })),
   projeto: { ...projeto0 },
   documentos: documentos0.map((d, i) => ({ id: uid(), nome: d, atualizado: "mai/26", tamanho: `${(1 + (i % 3)).toFixed(1)} MB` })),
   notificacoes: notifs0.map((n) => ({ ...n, id: uid() })),
@@ -151,6 +151,7 @@ function mapGaleria(docs: { id: string; data: () => Record<string, unknown> }[])
         id: d.id,
         url: String(v.url ?? ""),
         tipo: (v.tipo === "VIDEO" ? "VIDEO" : "FOTO") as GaleriaItem["tipo"],
+        link: String(v.link ?? ""),
         createdAt: Number(v.createdAt ?? 0),
       };
     })
@@ -205,7 +206,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         if (!snap.exists()) {
           // Primeira vez: publica o conteúdo do aparelho como semente
           await setDoc(mainRef, pickScalars(local as unknown as Record<string, unknown>));
-          await seedColl(GAL_PATH, local.galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo }));
+          await seedColl(GAL_PATH, local.galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo, link: (g as GaleriaItem).link ?? "" }));
           await seedColl(NOT_PATH, local.noticias, (n) => ({
             titulo: (n as Noticia).titulo, data: (n as Noticia).data,
             categoria: (n as Noticia).categoria, imagem: (n as Noticia).imagem,
@@ -229,10 +230,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           if (galSnap.empty && inlineG.length) {
             await seedColl(GAL_PATH, inlineG.map((g) => ({ id: g.id ?? uid() })), (x) => {
               const g = inlineG.find((v) => v.id === (x as { id: string }).id) ?? inlineG[0];
-              return { url: g.url, tipo: g.tipo };
+              return { url: g.url, tipo: g.tipo, link: g.link ?? "" };
             });
           } else if (galSnap.empty && local.galeria.length) {
-            await seedColl(GAL_PATH, local.galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo }));
+            await seedColl(GAL_PATH, local.galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo, link: (g as GaleriaItem).link ?? "" }));
           }
           if (notSnap.empty && inlineN.length) {
             await seedColl(NOT_PATH, inlineN.map((n) => ({ id: n.id ?? uid() })), (x) => {
@@ -353,7 +354,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       if (!isFirebaseConfigured || !syncedRef.current || !listsReadyRef.current) return;
       const { galeria, noticias } = patch as Partial<SiteState>;
       if (galeria) {
-        syncColl("galeria", prevListsRef.current.galeria, galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo }));
+        syncColl("galeria", prevListsRef.current.galeria, galeria, (g) => ({ url: (g as GaleriaItem).url, tipo: (g as GaleriaItem).tipo, link: (g as GaleriaItem).link ?? "" }));
         prevListsRef.current.galeria = [...galeria];
       }
       if (noticias) {
@@ -378,7 +379,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         ]);
         await Promise.all([...g.docs, ...n.docs].map((d) => deleteDoc(d.ref).catch(() => {})));
         await Promise.all([
-          ...DEFAULTS.galeria.map((it, i) => setDoc(doc(database, `${GAL_PATH}/${it.id}`), { url: it.url, tipo: it.tipo, createdAt: Date.now() - i })),
+          ...DEFAULTS.galeria.map((it, i) => setDoc(doc(database, `${GAL_PATH}/${it.id}`), { url: it.url, tipo: it.tipo, link: it.link ?? "", createdAt: Date.now() - i })),
           ...DEFAULTS.noticias.map((it, i) => setDoc(doc(database, `${NOT_PATH}/${it.id}`), { titulo: it.titulo, data: it.data, categoria: it.categoria, imagem: it.imagem, texto: it.texto ?? "", createdAt: Date.now() - i })),
         ]);
         prevListsRef.current = { galeria: [...DEFAULTS.galeria], noticias: [...DEFAULTS.noticias] };

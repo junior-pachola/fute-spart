@@ -272,7 +272,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
 }
   const [fNoticia, setFNoticia] = useState({ titulo: "", data: "", categoria: "Clube", imagem: "", texto: "" });
   const [fParceiro, setFParceiro] = useState({ nome: "", tipo: "Apoiador", detalhe: "", nivel: "BRONZE" as "OURO" | "PRATA" | "BRONZE" });
-  const [fGaleria, setFGaleria] = useState({ url: "", tipo: "FOTO" as GaleriaItem["tipo"] });
+  const [fGaleria, setFGaleria] = useState({ url: "", tipo: "FOTO" as GaleriaItem["tipo"], link: "" });
   const [fDoc, setFDoc] = useState({ nome: "" });
   const [fAviso, setFAviso] = useState({ titulo: "" });
   const [fPin, setFPin] = useState("");
@@ -297,7 +297,7 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
     setBusyGal(true);
     try {
       const urls = await processImageFiles(files, "galeria");
-      site.update({ galeria: [...urls.map((url) => ({ id: uid(), url, tipo: fGaleria.tipo })), ...site.galeria] });
+      site.update({ galeria: [...urls.map((url) => ({ id: uid(), url, tipo: fGaleria.tipo, link: "" })), ...site.galeria] });
     } catch {
       alert("Alguma imagem não pôde ser lida.");
     } finally {
@@ -708,11 +708,14 @@ function somarDias(dia: string, mes: string, ano: string, add: number): { dia: s
               {busyGal ? "IMPORTANDO..." : `IMPORTAR DA GALERIA (${fGaleria.tipo === "FOTO" ? "FOTOS" : "VÍDEOS"})`}
             </button>
             <Field value={fGaleria.url} onChange={(e) => setFGaleria({ ...fGaleria, url: e.target.value })} placeholder="...ou cole URL https:// e some abaixo" />
+            {fGaleria.tipo === "VIDEO" && (
+              <Field value={fGaleria.link} onChange={(e) => setFGaleria({ ...fGaleria, link: e.target.value })} placeholder="Link do vídeo (YouTube, Instagram...) — abre ao tocar" />
+            )}
             <button
               onClick={() => {
                 if (!fGaleria.url.trim()) return;
-                site.update({ galeria: [{ id: uid(), url: fGaleria.url.trim(), tipo: fGaleria.tipo }, ...site.galeria] });
-                setFGaleria({ url: "", tipo: "FOTO" });
+                site.update({ galeria: [{ id: uid(), url: fGaleria.url.trim(), tipo: fGaleria.tipo, link: fGaleria.link.trim() }, ...site.galeria] });
+                setFGaleria({ url: "", tipo: "FOTO", link: "" });
               }}
               className="press w-full rounded-xl bg-white/5 py-2.5 text-xs font-bold ring-1 ring-white/10"
             >
