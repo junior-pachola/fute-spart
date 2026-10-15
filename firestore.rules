@@ -5,7 +5,8 @@ service cloud.firestore {
     // (UID cadastrado no Authentication — troque se mudar de conta).
     function isAdmin() {
       return request.auth != null
-        && request.auth.uid == "ljH20fBEtIW8UkVb5xyrX7QLtLf2";
+        && (request.auth.uid == "a0o5BHZaA6OvzIleLPnmrrcpDN62"
+          || request.auth.uid == "ljH20fBEtIW8UkVb5xyrX7QLtLf2");
     }
     match /spartax/site {
       allow read: if true;

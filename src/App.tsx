@@ -1867,7 +1867,7 @@ export default function App() {
               </span>
               <span className="flex-1">
                 <span className="block text-[13px] font-bold">Administração do clube</span>
-                <span className="block text-[11px] text-zinc-500">Gerenciar conteúdo • acesso com PIN</span>
+                <span className="block text-[11px] text-zinc-500">{site.cloud ? "Gerenciar conteúdo • acesso com login" : "Gerenciar conteúdo • acesso com PIN"}</span>
               </span>
               <Icon name="chevron" size={17} className="text-gold-400" />
             </button>
